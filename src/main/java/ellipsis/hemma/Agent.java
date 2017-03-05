@@ -96,8 +96,8 @@ public abstract class Agent
 			setvMinus(0);
 		
 		// Current:
-		if(current < 0)
-			setCurrent(0);
+		if(current < -currentMax)
+			setCurrent(-currentMax);
 		else if(current > currentMax)
 			setCurrent(currentMax);
 	}

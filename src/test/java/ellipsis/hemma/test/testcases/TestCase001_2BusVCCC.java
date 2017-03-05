@@ -15,7 +15,7 @@ public class TestCase001_2BusVCCC
 	public static void main(String[] args)
 	{
 		Set<Agent> agents = init();
-		int K = 10000;
+		int K = 5000;
 		Solution solution = optimise(agents, K);
 		solution.printCSV(1000, agents.size()*2);
 	}
@@ -29,7 +29,7 @@ public class TestCase001_2BusVCCC
 		
 		for(int k = 0; k < K; ++k)
 		{
-if(k == 15000)
+if(k == 99500)
 {
 	@SuppressWarnings("unused")
 	int i = 0;
@@ -51,7 +51,7 @@ if(k == 15000)
 				agent.project();
 			
 				// Step dual variables:
-//				agent.stepLambda();
+				agent.stepLambda();
 			
 				// Step penalty multiplier:
 				agent.stepAlpha();
@@ -155,7 +155,7 @@ if(k == 15000)
         // Set optimization parameters:
         setEach(agents, Agent::setAlpha,            1.0e-3);
         setEach(agents, Agent::setAlphaMax,         1e24);
-        setEach(agents, Agent::setAlphaMultiplier,  1.005);
+        setEach(agents, Agent::setAlphaMultiplier,  1.001);
         setEach(agents, Agent::setLambdaMax,        10.0);
 
 		return agents;
