@@ -23,7 +23,7 @@ public class Solution
 	public ArrayList<Double> alphaValues = new ArrayList<>();
 	public ArrayList<RealVector> lambdaValues = new ArrayList<>();
 
-	public void storeDataPoint(Set<Agent> agents)
+	public void storeDataPoint(Set<Agent> agents, double epsilon)
 	{
 		RealVector x = appendVectors(agents, n -> vector(n.getV(), n.getvMinus(), n.getCurrent()));
 		xs.add(x);
@@ -31,19 +31,24 @@ public class Solution
 		costValues.add(sum(Agent::cost, agents));
 		gradientValues.add(appendVectors(agents, n -> n.gradient()));
 		gValues.add(appendVectors(agents, n -> vector(n.gPlus(), n.gMinus())));
-		epsilonValues.add(0.0);// FIXME epsilon);
+		epsilonValues.add(epsilon);
 		alphaValues.add(agents.iterator().next().getAlpha());
 		lambdaValues.add(appendVectors(agents, n -> vector(n.getLambdaPlus(), n.getLambdaMinus())));
 	}
 	
 	public Double lagrange(Set<Agent> agents)
 	{
+		double cost = sum(Agent::cost, agents);
+		double lambdaPlusG = sum(n -> n.getLambdaPlus()*n.gPlus(), agents);
+		double lambdaMinusG = sum(n -> n.getLambdaMinus()*n.gMinus(), agents);
+		double alphaGPlus = sum(n -> n.getAlpha()*n.gPlus()*n.gPlus()/2.0, agents);
+		double alphaGMinus = sum(n -> n.getAlpha()*n.gMinus()*n.gMinus()/2.0, agents);
 		return 
-			sum(Agent::cost, agents) + 
-			sum(n -> n.getLambdaPlus()*n.gPlus(), agents) +
-			sum(n -> n.getLambdaMinus()*n.gMinus(), agents) +
-			sum(n -> n.getAlpha()*n.gPlus()*n.gPlus()/2.0, agents) +
-			sum(n -> n.getAlpha()*n.gMinus()*n.gMinus()/2.0, agents);
+			cost + 
+			lambdaPlusG +
+			lambdaMinusG +
+			alphaGPlus +
+			alphaGMinus;
 	}
 
 	public int size()

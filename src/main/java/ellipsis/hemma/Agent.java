@@ -83,23 +83,42 @@ public abstract class Agent
 		return grad;
 	}
 	
-	public void project()
+	public boolean project()
 	{
+		boolean projected = false;
+		
 		// V:
 		if(v < vMin)
+		{
 			setV(vMin);
+			projected = true;
+		}
 		else if(v > vMax)
+		{
 			setV(vMax);
+			projected = true;
+		}
 		
 		// V-
 		if(vMinus < 0)
+		{
 			setvMinus(0);
+			projected = true;
+		}
 		
 		// Current:
 		if(current < -currentMax)
+		{
 			setCurrent(-currentMax);
+			projected = true;
+		}
 		else if(current > currentMax)
+		{
 			setCurrent(currentMax);
+			projected = true;
+		}
+		
+		return projected;
 	}
 
 	public void minimise()

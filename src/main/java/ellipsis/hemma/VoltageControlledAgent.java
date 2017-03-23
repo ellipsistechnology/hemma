@@ -7,12 +7,13 @@ import org.apache.commons.math3.linear.RealVector;
 
 public class VoltageControlledAgent extends Agent
 {
+	private static final double A = 1.0e-2;
+	
 	@Override
 	public double cost()
 	{
-		double v = getV();
 		double I = getCurrent();
-		return v*v + I*I;
+		return A*I*I;
 	}
 
 	@Override
@@ -20,14 +21,15 @@ public class VoltageControlledAgent extends Agent
 	{
 		double vMinus = getvMinus();
 		double v = getV();
-		return sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), communicator.neighbourSet()) - getCurrent();
+		return v*sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), communicator.neighbourSet()) - getCurrent();
 	}
 
 	@Override
 	public double gMinus()
 	{
 		double vMinus = getvMinus();
-		return sum(n -> (n.getvMinus() - vMinus)*conductance(n), communicator.neighbourSet()) - getCurrent();
+		double v = getV();
+		return v*sum(n -> (n.getvMinus() - vMinus)*conductance(n), communicator.neighbourSet()) - getCurrent();
 	}
 	
 	@Override
@@ -36,8 +38,7 @@ public class VoltageControlledAgent extends Agent
 		if(wrt == this)
 		{
 			double I = getCurrent();
-			double v = getV();
-			return vector(2*v, 0.0, 2*I);
+			return vector(0.0, 0.0, 2*A*I);
 		} 
 		else
 			return vector(0.0, 0.0, 0.0);
@@ -46,18 +47,32 @@ public class VoltageControlledAgent extends Agent
 	@Override
 	public RealVector gPlusGradient(Agent wrt)
 	{
+//		if(wrt == this)
+//			return vector(conductanceSum(), conductanceSum(), -1.0);
+//		else
+//			return vector(-conductance(wrt), -conductance(wrt), 0.0);
 		if(wrt == this)
-			return vector(conductanceSum(), conductanceSum(), -1.0);
+		{
+			double sum = 2*getV()*conductanceSum() + sum(n -> (getvMinus()-n.getvMinus()-n.getV())*conductance(n), communicator.neighbourSet());
+			return vector(sum, getV()*conductanceSum(), -1.0);
+		} 
 		else
-			return vector(-conductance(wrt), -conductance(wrt), 0.0);
+			return vector(-getV()*conductance(wrt), -getV()*conductance(wrt), 0.0);
 	}
 	
 	@Override
 	public RealVector gMinusGradient(Agent wrt)
 	{
+//		if(wrt == this)
+//			return vector(0.0, -conductanceSum(), -1.0);
+//		else
+//			return vector(0.0, conductance(wrt), 0.0);
 		if(wrt == this)
-			return vector(0.0, -conductanceSum(), -1.0);
+		{
+			double sum = sum(n -> (n.getvMinus()-getvMinus())*conductance(n), communicator.neighbourSet());
+			return vector(sum, -getV()*conductanceSum(), -1.0);
+		}
 		else
-			return vector(0.0, conductance(wrt), 0.0);
+			return vector(0.0, getV()*conductance(wrt), 0.0);
 	}
 }
