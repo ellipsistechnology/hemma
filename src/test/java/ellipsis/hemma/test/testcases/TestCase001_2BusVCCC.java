@@ -34,10 +34,12 @@ public class TestCase001_2BusVCCC extends TestCase
         Set<Agent> agents = builder.agentSet();
         
         // Set optimization parameters:
-        setEach(agents, Agent::setAlpha,            0.1);//FIXME 3.5e-2);
+        setEach(agents, Agent::setAlpha,            1e-3);//0.1);//FIXME 3.5e-2);
         setEach(agents, Agent::setAlphaMax,         1e24);
-        setEach(agents, Agent::setAlphaMultiplier,  1.0);//FIXME 1.01);
+        setEach(agents, Agent::setAlphaMultiplier,  1.001);
         setEach(agents, Agent::setLambdaMax,        1000.0);
+        setEach(agents, Agent::setEpsilon,          10.0);
+        setEach(agents, Agent::setEpsilonMultiplier,0.999);
 
 		return agents;
 	}

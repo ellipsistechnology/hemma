@@ -12,8 +12,8 @@ public class VoltageControlledAgent extends Agent
 	@Override
 	public double cost()
 	{
-		double I = getCurrent();
-		return A*I*I;
+		double p = getPower();
+		return A*p*p;
 	}
 
 	@Override
@@ -21,7 +21,7 @@ public class VoltageControlledAgent extends Agent
 	{
 		double vMinus = getvMinus();
 		double v = getV();
-		return v*sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), communicator.neighbourSet()) - getCurrent();
+		return v*sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), communicator.neighbourSet()) - getPower();
 	}
 
 	@Override
@@ -29,7 +29,7 @@ public class VoltageControlledAgent extends Agent
 	{
 		double vMinus = getvMinus();
 		double v = getV();
-		return v*sum(n -> (n.getvMinus() - vMinus)*conductance(n), communicator.neighbourSet()) - getCurrent();
+		return v*sum(n -> (n.getvMinus() - vMinus)*conductance(n), communicator.neighbourSet()) - getPower();
 	}
 	
 	@Override
@@ -37,8 +37,8 @@ public class VoltageControlledAgent extends Agent
 	{
 		if(wrt == this)
 		{
-			double I = getCurrent();
-			return vector(0.0, 0.0, 2*A*I);
+			double p = getPower();
+			return vector(0.0, 0.0, 2*A*p);
 		} 
 		else
 			return vector(0.0, 0.0, 0.0);

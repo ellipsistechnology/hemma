@@ -7,11 +7,11 @@ import org.apache.commons.math3.linear.RealVector;
 
 public class ConstantPowerAgent extends Agent
 {
-	private double power;
+	private double constantPower;
 	
 	public ConstantPowerAgent(double power)
 	{
-		this.power = power;
+		this.constantPower = power;
 	}
 
 	@Override
@@ -19,7 +19,7 @@ public class ConstantPowerAgent extends Agent
 	{
 		double vMinus = getvMinus();
 		double v = getV();
-		return v*sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), communicator.neighbourSet()) - power;
+		return v*sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), communicator.neighbourSet()) - constantPower;
 	}
 
 	@Override
@@ -27,7 +27,7 @@ public class ConstantPowerAgent extends Agent
 	{
 		double vMinus = getvMinus();
 		double v = getV();
-		return v*sum(n -> (n.getvMinus() - vMinus)*conductance(n), communicator.neighbourSet()) - power;
+		return v*sum(n -> (n.getvMinus() - vMinus)*conductance(n), communicator.neighbourSet()) - constantPower;
 	}
 
 	@Override

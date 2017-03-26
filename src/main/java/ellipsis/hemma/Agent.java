@@ -3,6 +3,8 @@ package ellipsis.hemma;
 import static ellipsis.common.math.Sum.sum;
 import static ellipsis.common.math.Sum.sumV;
 
+import static ellipsis.common.math.VectorHelper.vector;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,8 +15,8 @@ public abstract class Agent
 	private String name;
 	
 	// Electrical variables:
-	private double vMax, vMin, currentMax;
-	private double vMinus, v, current;
+	private double vMax, vMin, powerMax;
+	private double vMinus, v, power;
 	private boolean grounded = false;
 	private double ySum;
 	private Map<Agent, Double> conductances = new HashMap<>();
@@ -22,7 +24,7 @@ public abstract class Agent
 	// Optimisation variables:
 	private double lambdaPlus, lambdaMinus, lambdaMax;
 	private double alpha, alphaMax, alphaMultiplier;
-	private double equalityConstraintTarget = 1e-6;
+	private double epsilon, epsilonMultiplier;
 
 	protected AgentCommunicator communicator;
 	
@@ -49,26 +51,55 @@ public abstract class Agent
 //				(alpha/2.0)*sum(n -> n.gMinus()*n.gMinus(), communicator.neighbourSet());
 //	}
 
+	/**
+	 * @return g_i^+(x)
+	 */
 	public abstract double gPlus();
 
+	/**
+	 * @return g_i^-(x)
+	 */
 	public abstract double gMinus();
-	
+
+	/**
+	 * @return \nabla_{x_i} g_i^+(x)
+	 */
 	public abstract RealVector gPlusGradient(Agent wrt);
-	
+
+	/**
+	 * @return \nabla_{x_i} g_i^-(x)
+	 */
 	public abstract RealVector gMinusGradient(Agent wrt);
 
+	/**
+	 * @return c_i(x)
+	 */
 	public abstract double cost();
 	
+	/**
+	 * @param wrt With respect to.
+	 * @return \nabla_{wrt} c_i(x)
+	 */
 	public abstract RealVector costGradient(Agent wrt);
 	
+	/**
+	 * Lagrange gradient with respect to this agent's state: [v, v-, p].
+	 * @return \nabla_i L(x,\lambda)
+	 */
 	public RealVector gradient()
 	{
+		// Cost gradients:
+		// \nabla_i \sum c_i(x)
 		RealVector costGrad = costGradient(this);
-		RealVector neighbourCostGradients = sumV(n -> n.costGradient(Agent.this), communicator.neighbourSet(), 3);
+		RealVector neighbourCostGradients = sumV(n -> n.costGradient(Agent.this), communicator.neighbourSet(), 3); // this will always return zero now since the cost only uses local variables
 		
+		// Penalty gradients for positive power flow:
+		// \nabla_i \sum \nabla_i g^+_i(x) (\lambda^+ + \alpha g^+_i(x))
 		RealVector gPlusGrad = gPlusGradient(this).mapMultiply(lambdaPlus + alpha*gPlus());
 		RealVector neighbourGPlusGrad = sumV(n -> n.gPlusGradient(Agent.this).mapMultiply(n.getLambdaPlus() + n.getAlpha()*n.gPlus()), communicator.neighbourSet(), 3);
-		
+
+		// Penalty gradients for negative power flow:
+		// \nabla_i \sum \nabla_i g^-_i(x) (\lambda^+ + \alpha g^-_i(x))
 		RealVector gMinusGrad = gMinusGradient(this).mapMultiply(lambdaMinus + alpha*gMinus());
 		RealVector neighbourGMinusGrad = sumV(n -> n.gMinusGradient(Agent.this).mapMultiply(n.getLambdaMinus() + n.getAlpha()*n.gMinus()), communicator.neighbourSet(), 3);
 		
@@ -77,12 +108,18 @@ public abstract class Agent
 				gPlusGrad).add(neighbourGPlusGrad).add(
 				gMinusGrad).add(neighbourGMinusGrad);
 		
+		// If grounded then set v- = 0:
 		if(grounded)
-			grad.setEntry(1, 0.0); // [v, v-, I]
-		
+			grad.setEntry(1, 0.0); // [v, v-, p]
+//grad.setEntry(0, 0.0); // FIXME
 		return grad;
 	}
 	
+	/**
+	 * Project the current state of this agent back into the feasible set.
+	 * x_i := P_X{x_i} (14)
+	 * @return
+	 */
 	public boolean project()
 	{
 		boolean projected = false;
@@ -106,21 +143,24 @@ public abstract class Agent
 			projected = true;
 		}
 		
-		// Current:
-		if(current < -currentMax)
+		// Power:
+		if(power < -powerMax)
 		{
-			setCurrent(-currentMax);
+			setPower(-powerMax);
 			projected = true;
 		}
-		else if(current > currentMax)
+		else if(power > powerMax)
 		{
-			setCurrent(currentMax);
+			setPower(powerMax);
 			projected = true;
 		}
 		
 		return projected;
 	}
 
+	/**
+	 * TODO Currently this is handled by the TeseCase.
+	 */
 	public void minimise()
 	{
 		RealVector grad = gradient();
@@ -129,15 +169,24 @@ public abstract class Agent
 		
 		setV(getV() + step.getEntry(0));
 		setvMinus(getvMinus() + step.getEntry(1));
-		setCurrent(getCurrent() + step.getEntry(2));
+		setPower(getPower() + step.getEntry(2));
 	}
 
+	/**
+	 * TODO Currently handled by the TestCase.
+	 * @param grad
+	 * @return
+	 */
 	private double backtrack(RealVector grad)
 	{
 		return 0; // TODO
 	}
 
-
+	/**
+	 * Move Lambda to increase the penalty. (15)
+	 * \lambda^+_i := \lambda^+_i + \alpha g^+(x)
+	 * \lambda^-_i := \lambda^-_i + \alpha g^-(x)
+	 */
 	public void stepLambda()
 	{
 		lambdaPlus += alpha*gPlus();
@@ -154,13 +203,23 @@ public abstract class Agent
 			lambdaMinus = -lambdaMax;
 	}
 	
+	/**
+	 * Increase penalty multiplier.
+	 */
 	public void stepAlpha()
 	{
-		if(Math.abs(gPlus()) > equalityConstraintTarget && Math.abs(gMinus()) > equalityConstraintTarget)
-			alpha = alpha*alphaMultiplier;
+		alpha = alpha*alphaMultiplier;
 		
 		if(alpha > alphaMax)
 			alpha = alphaMax;
+	}
+	
+	/**
+	 * Decrease the target for the gradient and step.
+	 */
+	public void stepEpsilon()
+	{
+		epsilon *= epsilonMultiplier;
 	}
 
 	
@@ -260,22 +319,6 @@ public abstract class Agent
 	{
 		this.v = v;
 	}
-	public double getCurrent()
-	{
-		return current;
-	}
-	public void setCurrent(double current)
-	{
-		this.current = current;
-	}
-	public double getCurrentMax()
-	{
-		return currentMax;
-	}
-	public void setCurrentMax(double currentMax)
-	{
-		this.currentMax = currentMax;
-	}
 	public boolean isGrounded()
 	{
 		return grounded;
@@ -283,6 +326,22 @@ public abstract class Agent
 	public void setGrounded(boolean grounded)
 	{
 		this.grounded = grounded;
+	}
+	public double getPower()
+	{
+		return power;
+	}
+	public void setPower(double power)
+	{
+		this.power = power;
+	}
+	public double getPowerMax()
+	{
+		return powerMax;
+	}
+	public void setPowerMax(double powertMax)
+	{
+		this.powerMax = powertMax;
 	}
 
 
@@ -331,5 +390,37 @@ public abstract class Agent
 	public void setAlphaMultiplier(double alphaMultiplier)
 	{
 		this.alphaMultiplier = alphaMultiplier;
+	}
+	
+	public double getEpsilon()
+	{
+		return epsilon;
+	}
+	
+	public void setEpsilon(double epsilon)
+	{
+		this.epsilon = epsilon;
+	}
+	
+	public double getEpsilonMultiplier()
+	{
+		return epsilonMultiplier;
+	}
+	
+	public void setEpsilonMultiplier(double epsilonMultiplier)
+	{
+		this.epsilonMultiplier = epsilonMultiplier;
+	}
+
+	public RealVector state()
+	{
+		return vector(v, vMinus, power);
+	}
+	
+	public void setState(RealVector state)
+	{
+		setV(state.getEntry(0));
+		setvMinus(state.getEntry(1));
+		setPower(state.getEntry(2));
 	}
 }

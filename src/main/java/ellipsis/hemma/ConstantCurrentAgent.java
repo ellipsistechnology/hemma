@@ -7,15 +7,11 @@ import org.apache.commons.math3.linear.RealVector;
 
 public class ConstantCurrentAgent extends Agent
 {
+	private double constantCurrent;
+	
 	public ConstantCurrentAgent(double current)
 	{
-		super.setCurrent(current);
-	}
-	
-	@Override
-	public void setCurrent(double current)
-	{
-		// Cannot change current.
+		this.constantCurrent = current;
 	}
 
 	@Override
@@ -29,14 +25,14 @@ public class ConstantCurrentAgent extends Agent
 	{
 		double vMinus = getvMinus();
 		double v = getV();
-		return sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), communicator.neighbourSet()) - getCurrent();
+		return sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), communicator.neighbourSet()) - constantCurrent;
 	}
 
 	@Override
 	public double gMinus()
 	{
 		double vMinus = getvMinus();
-		return sum(n -> (n.getvMinus() - vMinus)*conductance(n), communicator.neighbourSet()) - getCurrent();
+		return sum(n -> (n.getvMinus() - vMinus)*conductance(n), communicator.neighbourSet()) - constantCurrent;
 	}
 	
 	@Override

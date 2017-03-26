@@ -26,7 +26,7 @@ public class NetworkBuilder
     private final static double CHARGER_VOLTAGE_MIN = 10;
     private final static double CHARGER_VOLTAGE_MAX = 18;
     
-    private final static double MAX_CURRENT = 100;
+    private final static double MAX_POWER = 100;
     
 	private HashMap<String, Agent> agents = new LinkedHashMap<>();
 	private Agent context;
@@ -44,7 +44,7 @@ public class NetworkBuilder
         cp.setvMin(CHARGER_VOLTAGE_MIN);
         cp.setV(CHARGER_VOLTAGE);
         cp.setvMinus(0.0);
-        cp.setCurrentMax(MAX_CURRENT);
+        cp.setPowerMax(MAX_POWER);
         
         agents.put(name, cp);
         context = cp;
@@ -60,7 +60,7 @@ public class NetworkBuilder
         cc.setvMin(LED_VOLTAGE_MIN);
         cc.setV(LED_VOLTAGE);
         cc.setvMinus(0.0);
-        cc.setCurrentMax(MAX_CURRENT);
+        cc.setPowerMax(MAX_POWER);
         
         agents.put(name, cc);
         context = cc;
@@ -68,7 +68,7 @@ public class NetworkBuilder
         return this;
     }
 
-	public NetworkBuilder makeVCAgent(String name, double maxCurrent)
+	public NetworkBuilder makeVCAgent(String name, double maxPower)
     {
         Agent vc = new VoltageControlledAgent();
         vc.setName(name);
@@ -76,7 +76,7 @@ public class NetworkBuilder
         vc.setvMin(PS_VOLTAGE_MIN);
         vc.setV(PS_VOLTAGE);
         vc.setvMinus(0.0);
-        vc.setCurrentMax(maxCurrent);
+        vc.setPowerMax(maxPower);
         
         agents.put(name, vc);
         context = vc;
