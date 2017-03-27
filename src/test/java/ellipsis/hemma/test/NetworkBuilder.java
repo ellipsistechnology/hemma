@@ -99,4 +99,20 @@ public class NetworkBuilder
 		context.setGrounded(b);
 		return this;
 	}
+
+	public void makeCPAgents(String name, int count, double power)
+	{
+		for(int i = 1; i <= count; ++i)
+		{
+			makeCPAgent(name+i, power);
+		}
+	}
+
+	public void makeCCAgents(String name, int count, double current)
+	{
+		for(int i = 1; i <= count; ++i)
+		{
+			makeCCAgent(name+i, current);
+		}
+	}
 }

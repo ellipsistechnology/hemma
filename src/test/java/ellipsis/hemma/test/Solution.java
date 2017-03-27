@@ -4,6 +4,8 @@ import static ellipsis.common.math.Sum.sum;
 import static ellipsis.common.math.VectorHelper.appendVectors;
 import static ellipsis.common.math.VectorHelper.vector;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Set;
@@ -13,7 +15,22 @@ import org.apache.commons.math3.linear.RealVector;
 import ellipsis.hemma.Agent;
 
 public class Solution
-{	
+{
+	protected static final PrintStream out;
+	static
+	{
+		try
+		{
+			File file = new File("/opt/hemma/log/data.csv");
+			file.getParentFile().mkdirs();
+			out = new PrintStream(file);
+		} 
+		catch (FileNotFoundException e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
+	
 	public ArrayList<RealVector> xs = new ArrayList<>();
 	public ArrayList<Double> lagrangeValues = new ArrayList<>();
 	public ArrayList<Double> costValues = new ArrayList<>();
@@ -83,7 +100,6 @@ public class Solution
 	
 	public void printCSV(int lineCount, int gDimension)
 	{
-		PrintStream out = System.out;
 		int dimension = xs.get(0).getDimension();
 		int logFrequency = size()/lineCount;
 		int agentCount = epsilonValues.get(0).getDimension();
