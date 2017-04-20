@@ -47,21 +47,21 @@ public class GeneticSolver<DNA>
 		boolean nextValue();
 	}
 
-	private FitnessFunction<DNA> fitness;
-	private GeneSplicer<DNA> splicer;
-	private Mutator<DNA> mutator;
-	private Creator<DNA> creator;
-	private StoppingCriteria<DNA> stoppingCriteria;
-	private int eliteCount;
-	private DNASelector<DNA> parentSelector;
-	private ProbabilityFunction mutationProbability;
+	protected FitnessFunction<DNA> fitness;
+	protected GeneSplicer<DNA> splicer;
+	protected Mutator<DNA> mutator;
+	protected Creator<DNA> creator;
+	protected StoppingCriteria<DNA> stoppingCriteria;
+	protected int eliteCount;
+	protected DNASelector<DNA> parentSelector;
+	protected ProbabilityFunction mutationProbability;
 	
 	public GeneticSolver()
 	{
 		
 	}
 	
-	public GeneticSolver<DNA> withCost(FitnessFunction<DNA> fitness)
+	public GeneticSolver<DNA> withFitness(FitnessFunction<DNA> fitness)
 	{
 		this.fitness = fitness;
 		return this;
@@ -160,12 +160,12 @@ public class GeneticSolver<DNA>
 	private static final int dimension = 10;
 	private static final Random rand = new Random();
 	
-	public static double cost(RealVector v)
+	private static double cost(RealVector v)
 	{
 		return -Sum.sum(i -> v.getEntry(i)*v.getEntry(i), v.getDimension());
 	}
 	
-	public static RealVector randomVector()
+	private static RealVector randomVector()
 	{
 		RealVector v = new ArrayRealVector(dimension);
 		for (int i = 0; i < dimension; i++) 
@@ -175,13 +175,13 @@ public class GeneticSolver<DNA>
 		return v;
 	}
 	
-	public static RealVector splice(RealVector a, RealVector b)
+	private static RealVector splice(RealVector a, RealVector b)
 	{
 		int n = rand.nextInt(a.getDimension());
 		return a.getSubVector(0, n).append(b.getSubVector(n, dimension-n));
 	}
 	
-	public static RealVector mutate(RealVector v)
+	private static RealVector mutate(RealVector v)
 	{
 		RealVector v2 = new ArrayRealVector(v);
 		int i = rand.nextInt(v.getDimension());
@@ -189,16 +189,15 @@ public class GeneticSolver<DNA>
 		return v2;
 	}
 	
-	public static RealVector selectParent(RealVector[] population)
+	private static RealVector selectParent(RealVector[] population)
 	{
-		int i = rand.nextInt(population.length/2);
-		return population[i];
+		return population[rand.nextInt(population.length/2)];
 	}
 	
 	public static void main(String[] args) 
 	{
 		GeneticSolver<RealVector> solver = new GeneticSolver<RealVector>()
-				.withCost(GeneticSolver::cost)
+				.withFitness(GeneticSolver::cost)
 				.withCreator(GeneticSolver::randomVector)
 				.withEliteCount(2)
 				.withGeneSplicer(GeneticSolver::splice)
