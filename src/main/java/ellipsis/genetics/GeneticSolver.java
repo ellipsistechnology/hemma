@@ -149,6 +149,9 @@ public class GeneticSolver<DNA>
 			population[i] = creator.create();
 		}
 		
+		if(iterationStartListener != null)
+			iterationStartListener.execute(population, -1);
+		
 		// Progress through generations:
 		int k = 0;
 		while(!stoppingCriteria.stop(population, k))
@@ -177,6 +180,10 @@ public class GeneticSolver<DNA>
 			System.arraycopy(nextGeneration, 0, population, 0, population.length);
 			++k;
 			
+			// Call listener:
+			if(iterationEndListener != null)
+				iterationEndListener.execute(population, k);
+			
 			// Log result:
 			if(logger != null)
 			{
@@ -187,9 +194,6 @@ public class GeneticSolver<DNA>
 				logger.print(" => ");
 				logger.println(fitness.fitness(fittest));
 			}
-			
-			if(iterationEndListener != null)
-				iterationEndListener.execute(population, k);
 		}
 		
 		// Find fittest solution:

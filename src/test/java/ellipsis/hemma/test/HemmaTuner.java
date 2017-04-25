@@ -93,11 +93,11 @@ public class HemmaTuner<TC extends TestCase> implements FitnessFunction<RealVect
 	public RealVector mutate(RealVector dna) 
 	{
 		RealVector mutated = new ArrayRealVector(dna.getDimension());
-		mutated.setEntry(0, Math.max(1e-6,     dna.getEntry(0)+(1-2*mutateRand.nextDouble())*0.1) ); // initial alpha      - must be > 0
-		mutated.setEntry(1, Math.max(1.000001, dna.getEntry(1)+(1-2*mutateRand.nextDouble())*0.01)); // alpha multiplier   - must be > 1  
-		mutated.setEntry(2, Math.max(1e-3,     dna.getEntry(2)+(1-2*mutateRand.nextDouble())*0.1) ); // lambda multiplier  - must be > 0 
-		mutated.setEntry(3, Math.max(1e-0,     dna.getEntry(3)+(1-2*mutateRand.nextDouble())*0.1) ); // initial epsilon    - must be > 0
-		mutated.setEntry(4, Math.min(0.99999,  dna.getEntry(4)+(1-2*mutateRand.nextDouble())*0.01)); // epsilon multiplier - must be < 1
+		mutated.setEntry(0, Math.max(1e-6,     dna.getEntry(0)+(1-2*mutateRand.nextDouble())*0.1)  ); // initial alpha      - must be > 0
+		mutated.setEntry(1, Math.max(1.000001, dna.getEntry(1)+(1-2*mutateRand.nextDouble())*0.001)); // alpha multiplier   - must be > 1  
+		mutated.setEntry(2, Math.max(1e-3,     dna.getEntry(2)+(1-2*mutateRand.nextDouble())*0.1)  ); // lambda multiplier  - must be > 0 
+		mutated.setEntry(3, Math.max(1e-0,     dna.getEntry(3)+(1-2*mutateRand.nextDouble())*0.1)  ); // initial epsilon    - must be > 0
+		mutated.setEntry(4, Math.min(0.99999,  dna.getEntry(4)+(1-2*mutateRand.nextDouble())*0.01) ); // epsilon multiplier - must be < 1
 		
 //		mutated.setEntry(0, dna.getEntry(0)); // FIXME
 //		mutated.setEntry(1, dna.getEntry(1)); // FIXME
@@ -128,6 +128,11 @@ public class HemmaTuner<TC extends TestCase> implements FitnessFunction<RealVect
 		solver.withMutator(this);
 		solver.withLogger(System.out);
 		solver.withIterationStartListener(this::preloadFitnesses);
+		solver.withIterationEndListener((population, k) -> 
+		{ 
+			preloadFitnesses(population, k); 
+			System.out.println("Iteration "+k+"ended"); 
+		} );
 		
 		RealVector solution = solver.solve(10);
 		System.out.println("initial alpha      = " + solution.getEntry(0));
