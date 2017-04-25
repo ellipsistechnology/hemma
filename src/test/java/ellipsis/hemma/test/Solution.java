@@ -3,6 +3,7 @@ package ellipsis.hemma.test;
 import static ellipsis.common.math.Sum.sum;
 import static ellipsis.common.math.VectorHelper.appendVectors;
 import static ellipsis.common.math.VectorHelper.vector;
+import static ellipsis.common.math.VectorHelper.map;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -10,6 +11,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Set;
 
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
 import ellipsis.hemma.Agent;
@@ -171,5 +173,43 @@ public class Solution
 			
 			++k;
 		}
+	}
+
+	/**
+	 * Returns a non-negative number representing the convergence of the algorithm.
+	 * Zero represents full convergence, larger numbers represent larger distances
+	 * from the solution.
+	 * @return Convergence measure.
+	 */
+	public double convergence(double baseVoltage, double basePower) 
+	{
+		int K = size();
+		int lastIndex = K-1;
+		
+		// Distance from final state at 80% through iterations:
+		RealVector finalState = xs.get(lastIndex);
+		RealVector _80State = xs.get((int)(K*0.8));
+		double 	stateConvergence = map( // scale according to base voltage and power
+					_80State.subtract(finalState), 
+					(int i, double d) -> {switch(i%3)
+					{
+					case 0:
+					case 1:
+						return d/baseVoltage;
+					case 2:
+						return d/basePower;
+					default: // invalid case since i%3 \in {0, 1, 2}
+						return 0.0;
+					}})
+				.getNorm();
+		
+		// Gradient norm:
+		double finalGradNorm = gradientValues.get(lastIndex).getNorm();
+		
+		// g(x) values:
+		double finalG = gValues.get(lastIndex).getNorm();
+		if(Double.isNaN(finalG) || Double.isNaN(finalGradNorm) || Double.isNaN(stateConvergence))
+			return Double.MAX_VALUE;
+		return new ArrayRealVector(new double[]{stateConvergence, finalGradNorm, finalG}).getNorm();
 	}
 }

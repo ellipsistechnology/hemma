@@ -22,7 +22,7 @@ public abstract class Agent
 	private Map<Agent, Double> conductances = new HashMap<>();
 	
 	// Optimisation variables:
-	private double lambdaPlus, lambdaMinus, lambdaMax;
+	private double lambdaPlus, lambdaMinus, lambdaMax, lambdaMultiplier = 1.0;
 	private double alpha, alphaMax, alphaMultiplier;
 	private double epsilon, epsilonMultiplier;
 
@@ -189,8 +189,8 @@ public abstract class Agent
 	 */
 	public void stepLambda()
 	{
-		lambdaPlus += alpha*gPlus();
-		lambdaMinus += alpha*gMinus();
+		lambdaPlus += lambdaMultiplier*alpha*gPlus();
+		lambdaMinus += lambdaMultiplier*alpha*gMinus();
 		
 		if(lambdaPlus > lambdaMax)
 			lambdaPlus = lambdaMax;
@@ -356,6 +356,13 @@ public abstract class Agent
 		this.lambdaMax = lambdaMax;
 	}
 
+	public void setLambdaMultiplier(double lambdaMultiplier) {
+		this.lambdaMultiplier = lambdaMultiplier;
+	}
+	
+	public double getLambdaMultiplier() {
+		return lambdaMultiplier;
+	}
 
 	public double getAlpha()
 	{

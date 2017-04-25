@@ -14,6 +14,7 @@ import ellipsis.hemma.test.Solution;
 
 public abstract class TestCase
 {
+	public static boolean minimalLogging = false;
 	private static final PrintStream log;
 	static
 	{
@@ -41,7 +42,7 @@ public abstract class TestCase
 		solution.printCSV(1000, agents.size()*2);
 	}
 
-	protected abstract Set<Agent> init();
+	public abstract Set<Agent> init();
 
 	/**
 	 * Algorithm 1:
@@ -54,7 +55,7 @@ public abstract class TestCase
 	 * @param K
 	 * @return
 	 */
-	private Solution optimise(Set<Agent> agents, int K)
+	public Solution optimise(Set<Agent> agents, int K)
 	{
 		// Init:
 		Solution sol = new Solution(); // This stores the important values from each iteration for logging.
@@ -63,8 +64,15 @@ public abstract class TestCase
 		
 		for(int k = 0; k < K; ++k)
 		{
-			log.print(".");
-			if(k % 1000 == 0) log.print(k);
+			if(!minimalLogging) 
+				log.print(".");
+			if(k % 1000 == 0)
+			{
+				log.print(k);
+				if(minimalLogging)
+					log.print(",");
+			}
+			
 			for (Agent agent : agents)
 			{
 				double epsilon = agent.getEpsilon();

@@ -6,6 +6,7 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
 import ellipsis.common.ArrayHelper;
+import ellipsis.common.math.Sum;
 import ellipsis.genetics.GeneticSolver.Creator;
 import ellipsis.genetics.GeneticSolver.GeneSplicer;
 import ellipsis.genetics.GeneticSolver.Mutator;
@@ -18,12 +19,22 @@ public class VectorGeneticSolver extends GeneticSolver<RealVector>
 	private double initialHigh;
 	private Random rand = new Random();
 
+	/**
+	 * 
+	 * @param dimension
+	 * @param initialLow
+	 * @param initialHigh
+	 * @param mutationProbability
+	 * @param parentSelectionPercent
+	 * @param maxIterations
+	 * @param minFitness
+	 */
 	public VectorGeneticSolver(int dimension, double initialLow, double initialHigh, double mutationProbability, double parentSelectionPercent, double maxIterations, double minFitness) 
 	{
 		this.dimension = dimension;
 		this.initialLow = initialLow;
 		this.initialHigh = initialHigh;
-
+		
 		withCreator(this);
 		withEliteCount(2);
 		withGeneSplicer(this);
@@ -31,6 +42,24 @@ public class VectorGeneticSolver extends GeneticSolver<RealVector>
 		withMutator(this);
 		withParentSelector(population -> population[rand.nextInt((int)(population.length*parentSelectionPercent))]);
 		withStoppingCriteria((population, k) -> k > maxIterations || ArrayHelper.max(population, fitness::fitness) > minFitness);
+	}
+	
+	/**
+	 * Must set creator manually and set dimension before use.
+	 * @param mutationProbability
+	 * @param parentSelectionPercent
+	 * @param maxIterations
+	 * @param minFitness
+	 */
+	public VectorGeneticSolver(double mutationProbability, double parentSelectionPercent, double maxIterations, double minFitness)
+	{
+		this(0, 0.0, 0.0, mutationProbability, parentSelectionPercent, maxIterations, minFitness);
+	}
+	
+	public VectorGeneticSolver withDimension(int dimension)
+	{
+		this.dimension = dimension;
+		return this;
 	}
 
 	@Override
@@ -58,5 +87,30 @@ public class VectorGeneticSolver extends GeneticSolver<RealVector>
 		int i = rand.nextInt(v.getDimension());
 		v2.setEntry(i, rand.nextDouble());
 		return v2;
+	}
+	
+	public RealVector solve(int populationSize) 
+	{
+		return super.solve(new RealVector[populationSize]);
+	}
+	
+	
+	//// Test Case ////
+	
+	private static double fitness(RealVector v)
+	{
+		return -Sum.sum(i -> v.getEntry(i)*v.getEntry(i), v.getDimension());
+	}
+
+	public static void main(String[] args) 
+	{
+		VectorGeneticSolver solver = new VectorGeneticSolver(10, 0.0, 1.0, 0.5, 0.5, 10000, -0.001);
+		solver.withFitness(VectorGeneticSolver::fitness);
+		solver.withLogger(System.out);
+		
+		RealVector fittest = solver.solve(new RealVector[10]);
+		
+		double fitness = fitness(fittest);
+		System.out.println(fittest.getNorm()+" : "+fitness);
 	}
 }

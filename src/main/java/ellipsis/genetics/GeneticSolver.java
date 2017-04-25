@@ -1,5 +1,6 @@
 package ellipsis.genetics;
 
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Random;
@@ -46,6 +47,11 @@ public class GeneticSolver<DNA>
 	{
 		boolean nextValue();
 	}
+	
+	public static interface IterationListener<DNA>
+	{
+		void execute(DNA[] population, int k);
+	}
 
 	protected FitnessFunction<DNA> fitness;
 	protected GeneSplicer<DNA> splicer;
@@ -55,10 +61,18 @@ public class GeneticSolver<DNA>
 	protected int eliteCount;
 	protected DNASelector<DNA> parentSelector;
 	protected ProbabilityFunction mutationProbability;
+	protected PrintStream logger;
+	protected IterationListener<DNA> iterationStartListener, iterationEndListener;
 	
 	public GeneticSolver()
 	{
 		
+	}
+	
+	public GeneticSolver<DNA> withLogger(PrintStream logger)
+	{
+		this.logger = logger;
+		return this;
 	}
 	
 	public GeneticSolver<DNA> withFitness(FitnessFunction<DNA> fitness)
@@ -109,6 +123,18 @@ public class GeneticSolver<DNA>
 		return this;
 	}
 	
+	public GeneticSolver<DNA> withIterationStartListener(IterationListener<DNA> l)
+	{
+		this.iterationStartListener = l;
+		return this;
+	}
+	
+	public GeneticSolver<DNA> withIterationEndListener(IterationListener<DNA> l)
+	{
+		this.iterationEndListener = l;
+		return this;
+	}
+	
 	/**
 	 * 
 	 * @param population An empty array ready to be filled with the initial population.
@@ -127,8 +153,11 @@ public class GeneticSolver<DNA>
 		int k = 0;
 		while(!stoppingCriteria.stop(population, k))
 		{
+			if(iterationStartListener != null)
+				iterationStartListener.execute(population, k);
+			
 			// Sort according to fitness:
-			Arrays.sort(population, Comparator.comparingDouble(fitness::fitness).reversed()); // FIXME this is probably in the wrong order
+			Arrays.sort(population, Comparator.comparingDouble(fitness::fitness).reversed());
 			
 			// Choose elite DNA for next population:
 			DNA[] nextGeneration = (DNA[])new Object[population.length];
@@ -147,6 +176,20 @@ public class GeneticSolver<DNA>
 			// Prepare for next generation:
 			System.arraycopy(nextGeneration, 0, population, 0, population.length);
 			++k;
+			
+			// Log result:
+			if(logger != null)
+			{
+				DNA fittest = ArrayHelper.maxElement(population, fitness::fitness);
+				logger.print(k);
+				logger.print(": ");
+				logger.print(fittest);
+				logger.print(" => ");
+				logger.println(fitness.fitness(fittest));
+			}
+			
+			if(iterationEndListener != null)
+				iterationEndListener.execute(population, k);
 		}
 		
 		// Find fittest solution:
@@ -160,7 +203,7 @@ public class GeneticSolver<DNA>
 	private static final int dimension = 10;
 	private static final Random rand = new Random();
 	
-	private static double cost(RealVector v)
+	private static double fitness(RealVector v)
 	{
 		return -Sum.sum(i -> v.getEntry(i)*v.getEntry(i), v.getDimension());
 	}
@@ -197,16 +240,17 @@ public class GeneticSolver<DNA>
 	public static void main(String[] args) 
 	{
 		GeneticSolver<RealVector> solver = new GeneticSolver<RealVector>()
-				.withFitness(GeneticSolver::cost)
+				.withFitness(GeneticSolver::fitness)
 				.withCreator(GeneticSolver::randomVector)
 				.withEliteCount(2)
 				.withGeneSplicer(GeneticSolver::splice)
 				.withMutationProbability(() -> rand.nextBoolean()) // 50/50 probability
 				.withMutator(GeneticSolver::mutate)
 				.withParentSelector(GeneticSolver::selectParent)
-				.withStoppingCriteria((population, k) -> k > 10000 || ArrayHelper.max(population, GeneticSolver::cost) > -0.001);
+				.withStoppingCriteria((population, k) -> k > 10000 || ArrayHelper.max(population, GeneticSolver::fitness) > -0.001)
+				.withLogger(System.out);
 		RealVector fittest = solver.solve(new RealVector[10]);
-		double cost = cost(fittest);
-		System.out.println(fittest.getNorm()+" : "+cost);
+		double fitness = fitness(fittest);
+		System.out.println(fittest.getNorm()+" : "+fitness);
 	}
 }

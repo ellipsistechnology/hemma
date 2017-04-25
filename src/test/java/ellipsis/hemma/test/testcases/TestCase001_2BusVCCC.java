@@ -18,7 +18,7 @@ public class TestCase001_2BusVCCC extends TestCase
 	 * Create a test case.
 	 * @return
 	 */
-	protected Set<Agent> init()
+	public Set<Agent> init()
 	{
 		NetworkBuilder builder = new NetworkBuilder();
 		

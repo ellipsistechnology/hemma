@@ -18,7 +18,7 @@ public class TestCase002_8Bus extends TestCase
 	 * Create a test case.
 	 * @return
 	 */
-	protected Set<Agent> init()
+	public Set<Agent> init()
 	{
 		NetworkBuilder builder = new NetworkBuilder();
 		
