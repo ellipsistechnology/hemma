@@ -128,7 +128,7 @@ public abstract class TestCase
 			sol.storeDataPoint(agents);
 		}
 		
-		log.println("Simulatoin complete.");
+		log.println("Simulation complete.");
 		return sol;
 	}
 
