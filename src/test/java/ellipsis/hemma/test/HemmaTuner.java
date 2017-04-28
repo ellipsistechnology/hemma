@@ -121,7 +121,7 @@ public class HemmaTuner<TC extends TestCase> implements FitnessFunction<RealVect
 	
 	public void solve()
 	{
-		VectorGeneticSolver solver = new VectorGeneticSolver(0.5, 0.5, 10, 1e-3);
+		VectorGeneticSolver solver = new VectorGeneticSolver(0.5, 0.5, 100, 1e-3);
 		solver.withDimension(5);
 		solver.withFitness(this);
 		solver.withCreator(this);
@@ -134,7 +134,7 @@ public class HemmaTuner<TC extends TestCase> implements FitnessFunction<RealVect
 			System.out.println("Iteration "+k+"ended"); 
 		} );
 		
-		RealVector solution = solver.solve(10);
+		RealVector solution = solver.solve(20);
 		System.out.println("initial alpha      = " + solution.getEntry(0));
 		System.out.println("alpha multiplier   = " + solution.getEntry(1));
 		System.out.println("lambda multiplier  = " + solution.getEntry(2));
