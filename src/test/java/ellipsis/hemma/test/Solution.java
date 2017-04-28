@@ -204,7 +204,7 @@ public class Solution
 				.getNorm();
 		
 		// Gradient norm:
-		double finalGradNorm = gradientValues.get(lastIndex).getNorm();
+		double finalGradNorm = gradientValues.get(lastIndex).getNorm()/alphaValues.get(lastIndex);
 		
 		// g(x) values:
 		double finalG = gValues.get(lastIndex).getNorm();
