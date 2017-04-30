@@ -87,12 +87,16 @@ public abstract class TestCase
 				 * has been reached (in the case of the state being projected and the
 				 * gradient not being able to drop below epsilon).
 				 */
+				int maxGradDecIterations = 100;
 				for(int i = 0; i < 3; ++i) // one dimension at a time - this is much faster due to a steep, curved Lagrange function 
 				{
 					RealVector grad = grad(agent, i);
 					double stepLength = 1.0; // how far we have stepped (if too small then no point in continuing - usually an issue due to projection)
-					while(grad.getNorm() > epsilon && stepLength > 1e-6)
+					int j = 0;
+					while(grad.getNorm() > epsilon && stepLength > 1e-6 && j < maxGradDecIterations)
 					{
+						++j;
+						
 						// Approximately find the best step size:
 						double stepSize = backtrack(sol, agents, agent, grad); // TODO replace with local backtracking
 						RealVector step = grad.mapMultiply(-stepSize);
