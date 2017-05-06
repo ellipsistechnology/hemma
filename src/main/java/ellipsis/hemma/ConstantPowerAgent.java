@@ -19,7 +19,7 @@ public class ConstantPowerAgent extends Agent
 	{
 		double vMinus = getvMinus();
 		double v = getV();
-		return v*sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), communicator.neighbourSet()) - constantPower;
+		return v*sum(n -> (v + vMinus - n.getvMinus() - n.getV())*conductance(n), hemmaProtocol.neighbourSet()) - constantPower;
 	}
 
 	@Override
@@ -27,7 +27,7 @@ public class ConstantPowerAgent extends Agent
 	{
 		double vMinus = getvMinus();
 		double v = getV();
-		return v*sum(n -> (n.getvMinus() - vMinus)*conductance(n), communicator.neighbourSet()) - constantPower;
+		return v*sum(n -> (n.getvMinus() - vMinus)*conductance(n), hemmaProtocol.neighbourSet()) - constantPower;
 	}
 
 	@Override
@@ -47,7 +47,7 @@ public class ConstantPowerAgent extends Agent
 	{
 		if(wrt == this)
 		{
-			double sum = 2*getV()*conductanceSum() + sum(n -> (getvMinus()-n.getvMinus()-n.getV())*conductance(n), communicator.neighbourSet());
+			double sum = 2*getV()*conductanceSum() + sum(n -> (getvMinus()-n.getvMinus()-n.getV())*conductance(n), hemmaProtocol.neighbourSet());
 			return vector(sum, getV()*conductanceSum(), 0.0);
 		} 
 		else
@@ -59,7 +59,7 @@ public class ConstantPowerAgent extends Agent
 	{
 		if(wrt == this)
 		{
-			double sum = sum(n -> (n.getvMinus()-getvMinus())*conductance(n), communicator.neighbourSet());
+			double sum = sum(n -> (n.getvMinus()-getvMinus())*conductance(n), hemmaProtocol.neighbourSet());
 			return vector(sum, -getV()*conductanceSum(), 0.0);
 		}
 		else

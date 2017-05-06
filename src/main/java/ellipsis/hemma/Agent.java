@@ -26,14 +26,22 @@ public abstract class Agent
 	private double alpha, alphaMax, alphaMultiplier;
 	private double epsilon, epsilonMultiplier;
 
-	protected AgentCommunicator communicator;
+	// HEMMA protocol variables:
+//	protected AgentCommunicator communicator;
+	protected HEMMAProtocol hemmaProtocol;
 	
 	
-	//// Constructor ////
+	//// Initialisation ////
 	
 	public Agent()
 	{
-		communicator = new AgentCommunicator();
+//		communicator = new AgentCommunicator();
+		hemmaProtocol = new HEMMAProtocol(this);
+	}
+	
+	public void switchOn()
+	{
+		hemmaProtocol.init();
 	}
 	
 	
@@ -91,17 +99,17 @@ public abstract class Agent
 		// Cost gradients:
 		// \nabla_i \sum c_i(x)
 		RealVector costGrad = costGradient(this);
-		RealVector neighbourCostGradients = sumV(n -> n.costGradient(Agent.this), communicator.neighbourSet(), 3); // this will always return zero now since the cost only uses local variables
+		RealVector neighbourCostGradients = sumV(n -> n.costGradient(Agent.this), hemmaProtocol.neighbourSet(), 3); // this will always return zero now since the cost only uses local variables
 		
 		// Penalty gradients for positive power flow:
 		// \nabla_i \sum \nabla_i g^+_i(x) (\lambda^+ + \alpha g^+_i(x))
 		RealVector gPlusGrad = gPlusGradient(this).mapMultiply(lambdaPlus + alpha*gPlus());
-		RealVector neighbourGPlusGrad = sumV(n -> n.gPlusGradient(Agent.this).mapMultiply(n.getLambdaPlus() + n.getAlpha()*n.gPlus()), communicator.neighbourSet(), 3);
+		RealVector neighbourGPlusGrad = sumV(n -> n.gPlusGradient(Agent.this).mapMultiply(n.getLambdaPlus() + n.getAlpha()*n.gPlus()), hemmaProtocol.neighbourSet(), 3);
 
 		// Penalty gradients for negative power flow:
 		// \nabla_i \sum \nabla_i g^-_i(x) (\lambda^+ + \alpha g^-_i(x))
 		RealVector gMinusGrad = gMinusGradient(this).mapMultiply(lambdaMinus + alpha*gMinus());
-		RealVector neighbourGMinusGrad = sumV(n -> n.gMinusGradient(Agent.this).mapMultiply(n.getLambdaMinus() + n.getAlpha()*n.gMinus()), communicator.neighbourSet(), 3);
+		RealVector neighbourGMinusGrad = sumV(n -> n.gMinusGradient(Agent.this).mapMultiply(n.getLambdaMinus() + n.getAlpha()*n.gMinus()), hemmaProtocol.neighbourSet(), 3);
 		
 		RealVector grad = 
 				costGrad.add(neighbourCostGradients).add(
@@ -111,7 +119,7 @@ public abstract class Agent
 		// If grounded then set v- = 0:
 		if(grounded)
 			grad.setEntry(1, 0.0); // [v, v-, p]
-//grad.setEntry(0, 0.0); // FIXME
+
 		return grad;
 	}
 	
@@ -229,7 +237,7 @@ public abstract class Agent
     {
         ySum = 0;
         conductances.put(neighbour, conductance);
-        communicator.addNeighbour(neighbour);
+        hemmaProtocol.connectToNeighbour(neighbour);
     }
     
     public double conductance(Agent neighbour)
@@ -259,6 +267,11 @@ public abstract class Agent
     
     
     //// Getters/Setters ////
+    
+    public HEMMAProtocol getHemmaProtocol() 
+    {
+		return hemmaProtocol;
+	}
 
 	public double getLambdaPlus()
 	{

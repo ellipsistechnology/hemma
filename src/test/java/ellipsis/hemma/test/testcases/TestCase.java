@@ -94,7 +94,7 @@ public abstract class TestCase
 					double stepLength = 1.0; // how far we have stepped (if too small then no point in continuing - usually an issue due to projection)
 					int j = 0;
 					while(grad.getNorm() > epsilon && stepLength > 1e-6 && j < maxGradDecIterations)
-					{
+					{// TODO check what's happening after 1000 or so iterations - is it getting into here at all? Seems to have converged with grad != 0.
 						++j;
 						
 						// Approximately find the best step size:
@@ -117,12 +117,13 @@ public abstract class TestCase
 					}
 				}
 			
-				// Step dual variables (15):
-				agent.stepLambda();
-			
-				// Step penalty multiplier if g(x) is too big:
-				if(Math.abs(agent.gPlus()) > epsilon || Math.abs(agent.gMinus()) > epsilon)
+				// Step dual variables (15) and penalty multiplier if g(x) is too big:
+				double targetG = Math.max(1e-3, epsilon);
+				if(Math.abs(agent.gPlus()) > targetG || Math.abs(agent.gMinus()) > targetG)
+				{
+					agent.stepLambda();
 					agent.stepAlpha();
+				}
 				
 				// Step epsilon:
 				agent.stepEpsilon();
@@ -141,7 +142,7 @@ public abstract class TestCase
 		RealVector grad = agent.gradient();
 		for (int j = 0; j < grad.getDimension(); j++)
 		{
-			if(j != i)
+			if(j != i && i != -1)
 				grad.setEntry(j, 0.0);
 		}
 		return grad;
