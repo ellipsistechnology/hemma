@@ -5,15 +5,15 @@ import java.util.Set;
 
 public class AgentCommunicator
 {
-	private Set<Agent> neighbours = new HashSet<>(); // physical link to neighbours
-	private Set<Agent> neighbourCache;
+	private Set<IAgent> neighbours = new HashSet<>(); // physical link to neighbours
+	private Set<IAgent> neighbourCache;
 
 	public AgentCommunicator()
 	{
 		
 	}
 
-	public void addNeighbour(Agent neighbour)
+	public void addNeighbour(IAgent neighbour)
 	{
 		neighbours.add(neighbour);
 		neighbourCache = null;
@@ -26,7 +26,7 @@ public class AgentCommunicator
 	 * 
 	 * @return Cached values from the neighbours.
 	 */
-	public Set<Agent> neighbourSet()
+	public Set<IAgent> neighbourSet()
 	{
 		// TODO make copies each iteration to simulate communication
 		if(neighbourCache == null)

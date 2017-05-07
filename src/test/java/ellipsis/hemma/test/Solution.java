@@ -2,8 +2,8 @@ package ellipsis.hemma.test;
 
 import static ellipsis.common.math.Sum.sum;
 import static ellipsis.common.math.VectorHelper.appendVectors;
-import static ellipsis.common.math.VectorHelper.vector;
 import static ellipsis.common.math.VectorHelper.map;
+import static ellipsis.common.math.VectorHelper.vector;
 
 import java.io.File;
 import java.io.FileNotFoundException;

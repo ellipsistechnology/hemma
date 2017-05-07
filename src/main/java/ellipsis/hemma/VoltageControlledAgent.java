@@ -33,7 +33,7 @@ public class VoltageControlledAgent extends Agent
 	}
 	
 	@Override
-	public RealVector costGradient(Agent wrt)
+	public RealVector costGradient(IAgent wrt)
 	{
 		if(wrt == this)
 		{
@@ -45,7 +45,7 @@ public class VoltageControlledAgent extends Agent
 	}
 	
 	@Override
-	public RealVector gPlusGradient(Agent wrt)
+	public RealVector gPlusGradient(IAgent wrt)
 	{
 //		if(wrt == this)
 //			return vector(conductanceSum(), conductanceSum(), -1.0);
@@ -61,7 +61,7 @@ public class VoltageControlledAgent extends Agent
 	}
 	
 	@Override
-	public RealVector gMinusGradient(Agent wrt)
+	public RealVector gMinusGradient(IAgent wrt)
 	{
 //		if(wrt == this)
 //			return vector(0.0, -conductanceSum(), -1.0);

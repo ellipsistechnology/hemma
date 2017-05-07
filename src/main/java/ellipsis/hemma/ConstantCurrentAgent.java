@@ -36,13 +36,13 @@ public class ConstantCurrentAgent extends Agent
 	}
 	
 	@Override
-	public RealVector costGradient(Agent wrt)
+	public RealVector costGradient(IAgent wrt)
 	{
 		return vector(0.0, 0.0, 0.0);
 	}
 	
 	@Override
-	public RealVector gPlusGradient(Agent wrt)
+	public RealVector gPlusGradient(IAgent wrt)
 	{
 		if(wrt == this)
 			return vector(conductanceSum(), conductanceSum(), 0.0);
@@ -51,7 +51,7 @@ public class ConstantCurrentAgent extends Agent
 	}
 	
 	@Override
-	public RealVector gMinusGradient(Agent wrt)
+	public RealVector gMinusGradient(IAgent wrt)
 	{
 		if(wrt == this)
 			return vector(0.0, -conductanceSum(), 0.0);

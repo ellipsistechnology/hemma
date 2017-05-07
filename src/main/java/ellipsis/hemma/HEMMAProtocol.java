@@ -12,6 +12,10 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 
+import javax.naming.OperationNotSupportedException;
+
+import org.apache.commons.math3.linear.RealVector;
+
 /**
  * Implementation of the HEMMA protocol.
  * @author bmillar
@@ -19,6 +23,41 @@ import java.util.Set;
  */
 public class HEMMAProtocol
 {	
+	static class AgentCache implements IAgent 
+	{
+		private Object[] params;
+		private String name;
+
+		AgentCache(String name, Object[] params) 
+		{
+			this.params = params;
+			this.name = name;
+		}
+
+		public String getName() { return name; }
+		public int hashCode() { return name.hashCode(); }
+		public boolean equals(Object obj) { return name.equals(obj); }
+
+		public double getV()           { return (double) params[0]; }
+		public double getvMinus()      { return (double) params[1]; }
+		public double getPower()       { return (double) params[2]; }
+
+		public double getLambdaPlus()  { return (double) params[3]; }
+		public double getLambdaMinus() { return (double) params[4]; }
+
+		public double getAlpha()       { return (double) params[5]; }
+
+		public double     gPlus()                    { return (double) params[6]; }
+		public double     gMinus()                   { return (double) params[7]; }
+
+		public RealVector costGradient(IAgent wrt)   { return (RealVector) params[8]; } // TODO may need to check that this is only called with appropriate wrt
+
+		public RealVector gPlusGradient(IAgent wrt)  { return (RealVector) params[9]; }
+		public RealVector gMinusGradient(IAgent wrt) { return (RealVector) params[10]; }
+
+		public HEMMAProtocol getHemmaProtocol() { throw new RuntimeException(new OperationNotSupportedException()); }
+	}
+
 	public static enum HEMMAState
 	{
 		Idle,
@@ -39,15 +78,17 @@ public class HEMMAProtocol
 		StartSession_reject,
 		StartSession_accepted,
 		FinishSession_reject,
-		FinishSession_accepted
+		FinishSession_accepted,
+		VariableUpdate_response
 	}
 	
 	public static class HEMMAMessage
 	{
 		HEMMAProtocol source;
 		HEMMAMessageType type;
-		int ttl;
-		int sessionId;
+		//int ttl;
+		//int sessionId;
+		Object[] parameters;
 		
 		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type)
 		{
@@ -55,16 +96,22 @@ public class HEMMAProtocol
 			this.type = type;
 		}
 		
-		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type, int ttl)
+//		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type, int ttl)
+//		{
+//			this(source, type);
+//			this.ttl = ttl;
+//		}
+		
+		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type, /*int ttl, */Object... params)
 		{
-			this(source, type);
-			this.ttl = ttl;
+			this(source, type/*, ttl*/);
+			this.parameters = params;
 		}
 		
-		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type, int ttl, int sessionId)
+		@Override
+		public String toString() 
 		{
-			this(source, type, ttl);
-			this.sessionId = sessionId;
+			return "["+type+":"+source.agent.getName()+"]";
 		}
 	}
 	
@@ -84,23 +131,34 @@ public class HEMMAProtocol
 	
 	private HEMMAState state = Idle;
 	private Queue<HEMMAMessage> messageQueue = new LinkedList<>();
-	private Set<Agent> connections = new HashSet<Agent>();
-	private Set<HEMMAProtocol> neighbours;
-	private Agent agent;
+	private Set<IAgent> connections = new HashSet<>(); // 'Physical connections'.
+	private Set<HEMMAProtocol> neighbours = new HashSet<>(); // Discovered neighbours.
+	private Set<IAgent> neighbourCache = new HashSet<>(); // Cached values from variable updates.
+	private IAgent agent;
 	
-	public HEMMAProtocol(Agent agent) 
+	public HEMMAProtocol(IAgent agent)
 	{
 		this.agent = agent;
 	}
 	
-	public void message(HEMMAMessage message) 
+	public HEMMAMessage message(HEMMAMessage message) 
 	{
-		synchronized(messageQueue)
+		switch(message.type)
 		{
-			messageQueue.add(message);
+		// Synchronous messages:
+		case VariableUpdate:
+			return variableUpdate(message);
+
+		// Asynchronous messages:
+		default:
+			synchronized(messageQueue)
+			{
+				messageQueue.add(message);
+			}
+			return null;
 		}
 	}
-	
+
 	/**
 	 * Used to identify an agents neighbours. 
 	 * Can only be sent in the Idle state. 
@@ -116,7 +174,13 @@ public class HEMMAProtocol
 	 */
 	public void discoverNeighbours(HEMMAProtocol neighbour)
 	{
+		log("DN message received form "+neighbour.agent.getName());
+		
+		// Add to known neighbours:
+		neighbours.add(neighbour);
+		
 		// Send IN in response:
+		log("Sending IN response to "+neighbour.agent.getName());
 		HEMMAMessage message = new HEMMAMessage(this, HEMMAMessageType.IdentifyNeighbour, 1);
 		neighbour.message(message);
 	}
@@ -131,6 +195,7 @@ public class HEMMAProtocol
 	 */
 	public void identifyNeighbour(HEMMAProtocol neighbour)
 	{
+		log("IN message received from "+neighbour.agent.getName());
 		neighbours.add(neighbour);
 	}
 	
@@ -190,16 +255,21 @@ public class HEMMAProtocol
 	 * 
 	 * Single recipient.
 	 */
-	public void variableUpdate()
+	public HEMMAMessage variableUpdate(HEMMAMessage message)
 	{
+		// Cache neighbour state:
+		final Object[] params = message.parameters;
+		final String name = message.source.agent.getName();
+		IAgent cache = new AgentCache(name, params);
+		neighbourCache.add(cache);
 		
+		// Respond with this agent's state:
+		return new HEMMAMessage(this, HEMMAMessageType.VariableUpdate_response, parameters(message.source.agent));
 	}
 	
 	Random rand = new Random(0);
 	public void execute()
 	{
-		// TODO update variables form neighbours
-		
 		do
 		{
 			// State machine:
@@ -218,7 +288,7 @@ public class HEMMAProtocol
 				throw new RuntimeException("Unsupported state found during state engine execution: "+state);
 			}
 			
-			// Process incoming messages: 
+			// Process incoming messages:
 			HEMMAMessage message;
 			synchronized(messageQueue)
 			{
@@ -226,7 +296,7 @@ public class HEMMAProtocol
 			}
 			if(message != null)
 			{
-				log.println(message.type+" received from "+message.source);
+//				log.println(message.type+" received from "+message.source);
 				
 				switch (message.type)
 				{
@@ -234,7 +304,8 @@ public class HEMMAProtocol
 					discoverNeighbours(message.source);
 					break;
 				case CancelSession:
-					cancelSession(message.sessionId);
+					int sessionId = (Integer)message.parameters[0];
+					cancelSession(sessionId);
 					break;
 				case FinishSession:
 					
@@ -257,10 +328,8 @@ public class HEMMAProtocol
 				case StartSession_reject:
 					
 					break;
-				case VariableUpdate:
-					
-					break;
 				default:
+					// N/A Handled synchronously.
 					break;
 				}
 			}
@@ -271,15 +340,20 @@ public class HEMMAProtocol
 	{
 		if(state == Idle)
 		{
+			log("Initialising HEMMA protocol; broadcasting DN message.");
 			neighbours = new HashSet<HEMMAProtocol>();
-			HEMMAMessage message = new HEMMAMessage(this, HEMMAMessageType.DiscoverNeighbours, 1);
+			HEMMAMessage message = new HEMMAMessage(this, HEMMAMessageType.DiscoverNeighbours);
 			broadcast(message);
+		}
+		else
+		{
+			log("Init called in invalid state: "+state);
 		}
 	}
 
 	protected void broadcast(HEMMAMessage message) 
 	{
-		for (Agent agent : connections) 
+		for (IAgent agent : connections) 
 		{
 			agent.getHemmaProtocol().message(message);
 		}
@@ -289,14 +363,53 @@ public class HEMMAProtocol
 	 * Physically connects this agent to another agent.
 	 * @param neighbour
 	 */
-	public void connectToNeighbour(Agent neighbour) 
+	public void connectToNeighbour(IAgent neighbour) 
 	{
 		connections.add(neighbour);
 	}
-	
-	// FIXME this should be sending cached data
-	public Set<Agent> neighbourSet()
+
+	public Set<IAgent> neighbourSet()
 	{
+		// FIXME
+//		return cachedNeighbours;
 		return connections;
+	}
+	
+	public void updateValues()
+	{
+		for (HEMMAProtocol n : neighbours) 
+		{
+			HEMMAMessage response = n.message(new HEMMAMessage(this, HEMMAProtocol.HEMMAMessageType.VariableUpdate, parameters(n.agent)));
+			neighbourCache.add(new AgentCache(response.source.agent.getName(), response.parameters));
+		}
+	}
+
+	protected Object[] parameters(IAgent neighbour)
+	{
+		return new Object[]{
+			agent.getV(), 
+			agent.getvMinus(), 
+			agent.getPower(), 
+			
+			agent.getLambdaPlus(), 
+			agent.getLambdaMinus(),
+			
+			agent.getAlpha(),
+			
+			agent.gPlus(),
+			agent.gMinus(),
+			
+			agent.costGradient(neighbour),
+			
+			agent.gPlusGradient(neighbour),
+			agent.gMinusGradient(neighbour)
+		};
+	}
+	
+	void log(String message)
+	{
+		log.print(agent.getName());
+		log.print(",");
+		log.println(message);
 	}
 }

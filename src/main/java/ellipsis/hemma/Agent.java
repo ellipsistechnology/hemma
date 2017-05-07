@@ -2,7 +2,6 @@ package ellipsis.hemma;
 
 import static ellipsis.common.math.Sum.sum;
 import static ellipsis.common.math.Sum.sumV;
-
 import static ellipsis.common.math.VectorHelper.vector;
 
 import java.util.HashMap;
@@ -10,7 +9,7 @@ import java.util.Map;
 
 import org.apache.commons.math3.linear.RealVector;
 
-public abstract class Agent
+public abstract class Agent implements IAgent
 {
 	private String name;
 	
@@ -19,7 +18,7 @@ public abstract class Agent
 	private double vMinus, v, power;
 	private boolean grounded = false;
 	private double ySum;
-	private Map<Agent, Double> conductances = new HashMap<>();
+	private Map<IAgent, Double> conductances = new HashMap<>();
 	
 	// Optimisation variables:
 	private double lambdaPlus, lambdaMinus, lambdaMax, lambdaMultiplier = 1.0;
@@ -60,35 +59,9 @@ public abstract class Agent
 //	}
 
 	/**
-	 * @return g_i^+(x)
-	 */
-	public abstract double gPlus();
-
-	/**
-	 * @return g_i^-(x)
-	 */
-	public abstract double gMinus();
-
-	/**
-	 * @return \nabla_{x_i} g_i^+(x)
-	 */
-	public abstract RealVector gPlusGradient(Agent wrt);
-
-	/**
-	 * @return \nabla_{x_i} g_i^-(x)
-	 */
-	public abstract RealVector gMinusGradient(Agent wrt);
-
-	/**
 	 * @return c_i(x)
 	 */
 	public abstract double cost();
-	
-	/**
-	 * @param wrt With respect to.
-	 * @return \nabla_{wrt} c_i(x)
-	 */
-	public abstract RealVector costGradient(Agent wrt);
 	
 	/**
 	 * Lagrange gradient with respect to this agent's state: [v, v-, p].
@@ -233,14 +206,14 @@ public abstract class Agent
 	
 	//// Neighbour Management ////
 	
-    public void addNeighbour(Agent neighbour, double conductance)
+    public void addNeighbour(IAgent neighbour, double conductance)
     {
         ySum = 0;
         conductances.put(neighbour, conductance);
         hemmaProtocol.connectToNeighbour(neighbour);
     }
     
-    public double conductance(Agent neighbour)
+    public double conductance(IAgent neighbour)
     {
         Double y_ij = conductances.get(neighbour);
 		return y_ij == null ? 0.0 : y_ij;
@@ -255,7 +228,7 @@ public abstract class Agent
         return ySum;
     }
     
-    public Iterable<Agent> neighbours()
+    public Iterable<IAgent> neighbours()
     {
         return conductances.keySet();
     }
@@ -268,11 +241,13 @@ public abstract class Agent
     
     //// Getters/Setters ////
     
+    @Override
     public HEMMAProtocol getHemmaProtocol() 
     {
 		return hemmaProtocol;
 	}
 
+    @Override
 	public double getLambdaPlus()
 	{
 		return lambdaPlus;
@@ -283,6 +258,7 @@ public abstract class Agent
 		this.lambdaPlus = lambdaPlus;
 	}
 
+    @Override
 	public double getLambdaMinus()
 	{
 		return lambdaMinus;
@@ -292,6 +268,7 @@ public abstract class Agent
 	{
 		this.lambdaMinus = lambdaMinus;
 	}
+    
 	public double getvMax()
 	{
 		return vMax;
@@ -308,6 +285,8 @@ public abstract class Agent
 	{
 		this.vMin = vMin;
 	}
+	
+	@Override
 	public String getName()
 	{
 		return name;
@@ -316,6 +295,8 @@ public abstract class Agent
 	{
 		this.name = name;
 	}
+	
+	@Override
 	public double getvMinus()
 	{
 		return vMinus;
@@ -324,6 +305,8 @@ public abstract class Agent
 	{
 		this.vMinus = vMinus;
 	}
+	
+	@Override
 	public double getV()
 	{
 		return v;
@@ -340,6 +323,8 @@ public abstract class Agent
 	{
 		this.grounded = grounded;
 	}
+	
+	@Override
 	public double getPower()
 	{
 		return power;
@@ -442,5 +427,28 @@ public abstract class Agent
 		setV(state.getEntry(0));
 		setvMinus(state.getEntry(1));
 		setPower(state.getEntry(2));
+	}
+	
+	public void updateValues()
+	{
+		hemmaProtocol.updateValues();
+	}
+	
+	@Override
+	public int hashCode() 
+	{
+		return name.hashCode();
+	}
+	
+	@Override
+	public boolean equals(Object obj) 
+	{
+		return name.equals(obj);
+	}
+	
+	@Override
+	public String toString() 
+	{
+		return name+"[x="+state()+"|lambda={"+getLambdaPlus()+","+getLambdaMinus()+"}|alpha="+getAlpha()+"]";
 	}
 }
