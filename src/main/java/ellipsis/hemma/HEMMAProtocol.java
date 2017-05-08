@@ -6,8 +6,10 @@ import static ellipsis.hemma.HEMMAProtocol.HEMMAState.SessionInitialisation;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
@@ -22,38 +24,68 @@ import org.apache.commons.math3.linear.RealVector;
  *
  */
 public class HEMMAProtocol
-{	
+{
+//public boolean useCache = false; // FIXME testing code
+
+	private static final int PARAM_COUNT = 11;
+	
+	private static final int PARAM_V = 0;
+	private static final int PARAM_V_MINUS = 1;
+	private static final int PARAM_POWER = 2;
+	
+	private static final int PARAM_LAMBDA_PLUS = 3;
+	private static final int PARAM_LAMBDA_MINUS = 4;
+	
+	private static final int PARAM_ALPHA = 5;
+	
+	private static final int PARAM_G_PLUS = 6;
+	private static final int PARAM_G_MINUS = 7;
+	
+	private static final int PARAM_COST_GRADIENT = 8;
+	
+	private static final int PARAM_G_PLUS_GRADIENT = 9;
+	private static final int PARAM_G_MINUS_GRADIENT = 10;
+	
 	static class AgentCache implements IAgent 
 	{
 		private Object[] params;
 		private String name;
+		private IAgent agent;
 
-		AgentCache(String name, Object[] params) 
+		AgentCache(IAgent agent, Object[] params) 
 		{
 			this.params = params;
-			this.name = name;
+			this.name = agent.getName();
+			this.agent = agent;
 		}
 
 		public String getName() { return name; }
 		public int hashCode() { return name.hashCode(); }
-		public boolean equals(Object obj) { return name.equals(obj); }
+		public boolean equals(Object obj) 
+		{
+			if(obj instanceof IAgent)
+				return name.equals(((IAgent)obj).getName());
+			return false;
+		}
+		public String toString() { return "CACHE:"+name; }
+	
+		public double getV()                         { return (double) params[PARAM_V]; }                   //{ return agent.getV(); }
 
-		public double getV()           { return (double) params[0]; }
-		public double getvMinus()      { return (double) params[1]; }
-		public double getPower()       { return (double) params[2]; }
+		public double getvMinus()                    { return (double) params[PARAM_V_MINUS]; }             //{ return agent.getvMinus(); }             
+		public double getPower()                     { return (double) params[PARAM_POWER]; }               //{ return agent.getPower(); }              
 
-		public double getLambdaPlus()  { return (double) params[3]; }
-		public double getLambdaMinus() { return (double) params[4]; }
+		public double getLambdaPlus()                { return (double) params[PARAM_LAMBDA_PLUS]; }         //{ return agent.getLambdaPlus(); }         
+		public double getLambdaMinus()               { return (double) params[PARAM_LAMBDA_MINUS]; }        //{ return agent.getLambdaMinus(); }        
 
-		public double getAlpha()       { return (double) params[5]; }
+		public double getAlpha()                     { return (double) params[PARAM_ALPHA]; }               //{ return agent.getAlpha(); }              
 
-		public double     gPlus()                    { return (double) params[6]; }
-		public double     gMinus()                   { return (double) params[7]; }
-
-		public RealVector costGradient(IAgent wrt)   { return (RealVector) params[8]; } // TODO may need to check that this is only called with appropriate wrt
-
-		public RealVector gPlusGradient(IAgent wrt)  { return (RealVector) params[9]; }
-		public RealVector gMinusGradient(IAgent wrt) { return (RealVector) params[10]; }
+		public double gPlus()                        { return (double) params[PARAM_G_PLUS]; }              //{return agent.gPlus();}            
+		public double gMinus()                       { return (double) params[PARAM_G_MINUS]; }             //{return agent.gMinus();}           
+                                                                                                            //                                   
+		public RealVector costGradient(IAgent wrt)   { return (RealVector) params[PARAM_COST_GRADIENT]; }   //{return agent.costGradient(wrt);}   // TODO may need to check that this is only called with appropriate wrt
+                                                                                                            //                                   
+		public RealVector gPlusGradient(IAgent wrt)  { return (RealVector) params[PARAM_G_PLUS_GRADIENT]; } //{return agent.gPlusGradient(wrt);} 
+		public RealVector gMinusGradient(IAgent wrt) { return (RealVector) params[PARAM_G_MINUS_GRADIENT]; }//{return agent.gMinusGradient(wrt);}
 
 		public HEMMAProtocol getHemmaProtocol() { throw new RuntimeException(new OperationNotSupportedException()); }
 	}
@@ -133,7 +165,7 @@ public class HEMMAProtocol
 	private Queue<HEMMAMessage> messageQueue = new LinkedList<>();
 	private Set<IAgent> connections = new HashSet<>(); // 'Physical connections'.
 	private Set<HEMMAProtocol> neighbours = new HashSet<>(); // Discovered neighbours.
-	private Set<IAgent> neighbourCache = new HashSet<>(); // Cached values from variable updates.
+	private Map<HEMMAProtocol, IAgent> neighbourCache = new HashMap<>(); // Cached values from variable updates.
 	private IAgent agent;
 	
 	public HEMMAProtocol(IAgent agent)
@@ -258,13 +290,19 @@ public class HEMMAProtocol
 	public HEMMAMessage variableUpdate(HEMMAMessage message)
 	{
 		// Cache neighbour state:
-		final Object[] params = message.parameters;
-		final String name = message.source.agent.getName();
-		IAgent cache = new AgentCache(name, params);
-		neighbourCache.add(cache);
+		IAgent cache = new AgentCache(message.source.agent, message.parameters);
+		updateCache(message.source, cache);
 		
 		// Respond with this agent's state:
 		return new HEMMAMessage(this, HEMMAMessageType.VariableUpdate_response, parameters(message.source.agent));
+	}
+
+	protected void updateCache(HEMMAProtocol hemma, IAgent cache) 
+	{
+//		if(neighbourCache.contains(cache))
+//			neighbourCache.remove(cache);
+		
+		neighbourCache.put(hemma, cache);
 	}
 	
 	Random rand = new Random(0);
@@ -368,42 +406,89 @@ public class HEMMAProtocol
 		connections.add(neighbour);
 	}
 
-	public Set<IAgent> neighbourSet()
+	public Iterable<IAgent> neighbourSet()
 	{
-		// FIXME
-//		return cachedNeighbours;
-		return connections;
+//if(useCache)
+//		return neighbourCache.values();
+//else
+	return connections;
+		
+//		return new Iterable<IAgent>() {
+//			
+//			@Override
+//			public Iterator<IAgent> iterator() 
+//			{
+//				final Iterator<HEMMAProtocol> it = neighbours.iterator();
+//				return new Iterator<IAgent>() {
+//					
+//					@Override
+//					public IAgent next() 
+//					{
+//						// If not cached then request values from neighbour:
+//						HEMMAProtocol hemma = it.next();
+//						if(!neighbourCache.containsKey(hemma))
+//							throw new RuntimeException("Neighbour missing from cache: "+hemma.agent.getName());
+//						
+//						// Otherwise use cached values:
+//						IAgent agent = neighbourCache.get(hemma);
+//						if(agent == null)
+//							throw new RuntimeException();
+//						return agent;
+//					}
+//					
+//					@Override
+//					public boolean hasNext() 
+//					{
+//						return it.hasNext();
+//					}
+//				};
+//			}
+//		};
 	}
 	
 	public void updateValues()
 	{
 		for (HEMMAProtocol n : neighbours) 
 		{
-			HEMMAMessage response = n.message(new HEMMAMessage(this, HEMMAProtocol.HEMMAMessageType.VariableUpdate, parameters(n.agent)));
-			neighbourCache.add(new AgentCache(response.source.agent.getName(), response.parameters));
+			updateValues(n);
 		}
 	}
 
-	protected Object[] parameters(IAgent neighbour)
+	protected IAgent updateValues(HEMMAProtocol n) 
 	{
-		return new Object[]{
-			agent.getV(), 
-			agent.getvMinus(), 
-			agent.getPower(), 
-			
-			agent.getLambdaPlus(), 
-			agent.getLambdaMinus(),
-			
-			agent.getAlpha(),
-			
-			agent.gPlus(),
-			agent.gMinus(),
-			
-			agent.costGradient(neighbour),
-			
-			agent.gPlusGradient(neighbour),
-			agent.gMinusGradient(neighbour)
-		};
+		HEMMAMessage response = n.message(new HEMMAMessage(this, HEMMAProtocol.HEMMAMessageType.VariableUpdate, parameters(n.agent)));
+		IAgent cache = new AgentCache(response.source.agent, response.parameters);
+		updateCache(response.source, cache);
+		return cache;
+	}
+
+	protected Object[] parameters(IAgent wrt)
+	{
+		Object[] params = new Object[PARAM_COUNT];
+		
+		params[PARAM_V] = agent.getV();
+		params[PARAM_V_MINUS] = agent.getvMinus();
+		params[PARAM_POWER] = agent.getPower();
+
+		params[PARAM_LAMBDA_PLUS] = agent.getLambdaPlus();
+		params[PARAM_LAMBDA_MINUS] = agent.getLambdaMinus();
+
+		params[PARAM_ALPHA] = agent.getAlpha();
+
+		params[PARAM_G_PLUS] = agent.gPlus();
+		params[PARAM_G_MINUS] = agent.gMinus();
+
+		params[PARAM_COST_GRADIENT] = agent.costGradient(wrt);
+
+		params[PARAM_G_PLUS_GRADIENT] = agent.gPlusGradient(wrt);
+		params[PARAM_G_MINUS_GRADIENT] = agent.gMinusGradient(wrt);
+		
+		return params;
+	}
+
+	public boolean initialised() 
+	{
+		return neighbourCache.size() == neighbours.size();
 	}
 	
 	void log(String message)
@@ -411,5 +496,11 @@ public class HEMMAProtocol
 		log.print(agent.getName());
 		log.print(",");
 		log.println(message);
+	}
+	
+	@Override
+	public String toString() 
+	{
+		return "HEMMA:"+agent.toString();
 	}
 }

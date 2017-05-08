@@ -78,6 +78,7 @@ public abstract class TestCase
 			
 			for (Agent agent : agents)
 			{
+//agent.getHemmaProtocol().useCache = true;
 				double epsilon = agent.getEpsilon();
 				
 				agent.getHemmaProtocol().execute();
@@ -85,7 +86,8 @@ public abstract class TestCase
 				// Minimise (14) (TODO move this to agent):
 				
 				// Update values form neighbours:
-				agent.updateValues();
+				if(!agent.updateValues())
+					continue;
 				
 				/*
 				 * Stochastic gradient decent until Lagrange gradient is less than epsilon,
@@ -134,6 +136,7 @@ public abstract class TestCase
 				
 				// Step epsilon:
 				agent.stepEpsilon();
+//agent.getHemmaProtocol().useCache = false;
 			}
 			
 			// Save state for logging later:

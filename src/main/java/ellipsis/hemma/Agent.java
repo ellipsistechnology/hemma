@@ -429,9 +429,10 @@ public abstract class Agent implements IAgent
 		setPower(state.getEntry(2));
 	}
 	
-	public void updateValues()
+	public boolean updateValues()
 	{
 		hemmaProtocol.updateValues();
+		return hemmaProtocol.initialised();
 	}
 	
 	@Override
