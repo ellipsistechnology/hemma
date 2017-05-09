@@ -64,6 +64,22 @@ public abstract class Agent implements IAgent
 	public abstract double cost();
 	
 	/**
+	 * @return \nabla_{x_i} g_i^+(x)
+	 */
+	public abstract RealVector gPlusGradient(IAgent wrt);
+
+	/**
+	 * @return \nabla_{x_i} g_i^-(x)
+	 */
+	public abstract RealVector gMinusGradient(IAgent wrt);
+	
+	/**
+	 * @param wrt With respect to.
+	 * @return \nabla_{wrt} c_i(x)
+	 */
+	public abstract RealVector costGradient(IAgent wrt);
+	
+	/**
 	 * Lagrange gradient with respect to this agent's state: [v, v-, p].
 	 * @return \nabla_i L(x,\lambda)
 	 */
@@ -72,17 +88,17 @@ public abstract class Agent implements IAgent
 		// Cost gradients:
 		// \nabla_i \sum c_i(x)
 		RealVector costGrad = costGradient(this);
-		RealVector neighbourCostGradients = sumV(n -> n.costGradient(Agent.this), hemmaProtocol.neighbourSet(), 3); // this will always return zero now since the cost only uses local variables
+		RealVector neighbourCostGradients = sumV(n -> neighbourCostGradient(n), hemmaProtocol.neighbourSet(), 3); // this will always return zero now since the cost only uses local variables
 		
 		// Penalty gradients for positive power flow:
 		// \nabla_i \sum \nabla_i g^+_i(x) (\lambda^+ + \alpha g^+_i(x))
 		RealVector gPlusGrad = gPlusGradient(this).mapMultiply(lambdaPlus + alpha*gPlus());
-		RealVector neighbourGPlusGrad = sumV(n -> n.gPlusGradient(Agent.this).mapMultiply(n.getLambdaPlus() + n.getAlpha()*n.gPlus()), hemmaProtocol.neighbourSet(), 3);
+		RealVector neighbourGPlusGrad = sumV(n -> neighbourGPlusGradient(n).mapMultiply(n.getLambdaPlus() + n.getAlpha()*n.gPlus()), hemmaProtocol.neighbourSet(), 3);
 
 		// Penalty gradients for negative power flow:
 		// \nabla_i \sum \nabla_i g^-_i(x) (\lambda^+ + \alpha g^-_i(x))
 		RealVector gMinusGrad = gMinusGradient(this).mapMultiply(lambdaMinus + alpha*gMinus());
-		RealVector neighbourGMinusGrad = sumV(n -> n.gMinusGradient(Agent.this).mapMultiply(n.getLambdaMinus() + n.getAlpha()*n.gMinus()), hemmaProtocol.neighbourSet(), 3);
+		RealVector neighbourGMinusGrad = sumV(n -> neighbourGMinusGradient(n).mapMultiply(n.getLambdaMinus() + n.getAlpha()*n.gMinus()), hemmaProtocol.neighbourSet(), 3);
 		
 		RealVector grad = 
 				costGrad.add(neighbourCostGradients).add(
@@ -96,6 +112,23 @@ public abstract class Agent implements IAgent
 		return grad;
 	}
 	
+	// TODO implement the gradients as commonly known functions shared by any type of agent
+	
+	private RealVector neighbourCostGradient(IAgent n) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private RealVector neighbourGPlusGradient(IAgent n) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private RealVector neighbourGMinusGradient(IAgent n) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	/**
 	 * Project the current state of this agent back into the feasible set.
 	 * x_i := P_X{x_i} (14)

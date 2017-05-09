@@ -16,8 +16,6 @@ import java.util.Set;
 
 import javax.naming.OperationNotSupportedException;
 
-import org.apache.commons.math3.linear.RealVector;
-
 /**
  * Implementation of the HEMMA protocol.
  * @author bmillar
@@ -41,10 +39,10 @@ public class HEMMAProtocol
 	private static final int PARAM_G_PLUS = 6;
 	private static final int PARAM_G_MINUS = 7;
 	
-	private static final int PARAM_COST_GRADIENT = 8;
-	
-	private static final int PARAM_G_PLUS_GRADIENT = 9;
-	private static final int PARAM_G_MINUS_GRADIENT = 10;
+//	private static final int PARAM_COST_GRADIENT = 8;
+//	
+//	private static final int PARAM_G_PLUS_GRADIENT = 9;
+//	private static final int PARAM_G_MINUS_GRADIENT = 10;
 	
 	static class AgentCache implements IAgent 
 	{
@@ -82,10 +80,10 @@ public class HEMMAProtocol
 		public double gPlus()                        { return (double) params[PARAM_G_PLUS]; }              //{return agent.gPlus();}            
 		public double gMinus()                       { return (double) params[PARAM_G_MINUS]; }             //{return agent.gMinus();}           
                                                                                                             //                                   
-		public RealVector costGradient(IAgent wrt)   { return (RealVector) params[PARAM_COST_GRADIENT]; }   //{return agent.costGradient(wrt);}   // TODO may need to check that this is only called with appropriate wrt
-                                                                                                            //                                   
-		public RealVector gPlusGradient(IAgent wrt)  { return (RealVector) params[PARAM_G_PLUS_GRADIENT]; } //{return agent.gPlusGradient(wrt);} 
-		public RealVector gMinusGradient(IAgent wrt) { return (RealVector) params[PARAM_G_MINUS_GRADIENT]; }//{return agent.gMinusGradient(wrt);}
+//		public RealVector costGradient(IAgent wrt)   { return (RealVector) params[PARAM_COST_GRADIENT]; }   //{return agent.costGradient(wrt);}   // TODO may need to check that this is only called with appropriate wrt
+//                                                                                                            //                                   
+//		public RealVector gPlusGradient(IAgent wrt)  { return (RealVector) params[PARAM_G_PLUS_GRADIENT]; } //{return agent.gPlusGradient(wrt);} 
+//		public RealVector gMinusGradient(IAgent wrt) { return (RealVector) params[PARAM_G_MINUS_GRADIENT]; }//{return agent.gMinusGradient(wrt);}
 
 		public HEMMAProtocol getHemmaProtocol() { throw new RuntimeException(new OperationNotSupportedException()); }
 	}
@@ -478,10 +476,10 @@ public class HEMMAProtocol
 		params[PARAM_G_PLUS] = agent.gPlus();
 		params[PARAM_G_MINUS] = agent.gMinus();
 
-		params[PARAM_COST_GRADIENT] = agent.costGradient(wrt);
-
-		params[PARAM_G_PLUS_GRADIENT] = agent.gPlusGradient(wrt);
-		params[PARAM_G_MINUS_GRADIENT] = agent.gMinusGradient(wrt);
+//		params[PARAM_COST_GRADIENT] = agent.costGradient(wrt);
+//
+//		params[PARAM_G_PLUS_GRADIENT] = agent.gPlusGradient(wrt);
+//		params[PARAM_G_MINUS_GRADIENT] = agent.gMinusGradient(wrt);
 		
 		return params;
 	}

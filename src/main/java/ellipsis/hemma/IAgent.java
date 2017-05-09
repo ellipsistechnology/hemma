@@ -1,6 +1,5 @@
 package ellipsis.hemma;
 
-import org.apache.commons.math3.linear.RealVector;
 
 public interface IAgent 
 {
@@ -15,22 +14,6 @@ public interface IAgent
 	 * @return g_i^-(x)
 	 */
 	double gMinus();
-
-	/**
-	 * @return \nabla_{x_i} g_i^+(x)
-	 */
-	RealVector gPlusGradient(IAgent wrt);
-
-	/**
-	 * @return \nabla_{x_i} g_i^-(x)
-	 */
-	RealVector gMinusGradient(IAgent wrt);
-	
-	/**
-	 * @param wrt With respect to.
-	 * @return \nabla_{wrt} c_i(x)
-	 */
-	RealVector costGradient(IAgent wrt);
 
 	double getLambdaPlus();
 
