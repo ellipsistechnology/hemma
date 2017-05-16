@@ -10,6 +10,7 @@ import java.util.Set;
 import org.apache.commons.math3.linear.RealVector;
 
 import ellipsis.hemma.Agent;
+import ellipsis.hemma.HEMMAProtocol;
 import ellipsis.hemma.test.Solution;
 
 public abstract class TestCase
@@ -76,8 +77,8 @@ public abstract class TestCase
 					log.print(",");
 			}
 			
-if(k >= 4000)
-	System.out.print(' '); 
+//if(k >= 4000)
+//	System.out.print(' '); 
 // FIXME Pure gradient decent is stopping well short due to backtracking giving 0 step size
 			
 			for (Agent agent : agents)
@@ -101,6 +102,8 @@ if(k >= 4000)
 				 * gradient not being able to drop below epsilon).
 				 */
 				int maxGradDecIterations = 100;
+//if(agent.gradient().getNorm() > Math.max(Math.abs(agent.gPlus()),  Math.abs(agent.gMinus())))
+//{
 				for(int i = 0; i < 3; ++i) // one dimension at a time - this is much faster due to a steep, curved Lagrange function 
 				{
 					RealVector grad = grad(agent, i);
@@ -129,7 +132,8 @@ if(k >= 4000)
 						grad = grad(agent, i);
 					}
 				}
-			
+//}
+//else
 				// Step dual variables (15) and penalty multiplier if g(x) is too big:
 				double targetG = Math.max(1e-3, epsilon);
 				if(Math.abs(agent.gPlus()) > targetG || Math.abs(agent.gMinus()) > targetG)
@@ -140,7 +144,6 @@ if(k >= 4000)
 				
 				// Step epsilon:
 				agent.stepEpsilon();
-//agent.getHemmaProtocol().useCache = false;
 			}
 			
 			// Save state for logging later:
@@ -175,6 +178,8 @@ if(k >= 4000)
 	 */
 	private double backtrack(Solution sol, Set<Agent> agents, Agent agent, RealVector grad)
 	{
+boolean oldCacheValue = HEMMAProtocol.useCache;
+HEMMAProtocol.useCache = false;
 		double lagrange = sol.lagrange(agents);
 		double stepSize = 2;
 		double grad2 = grad.dotProduct(grad);
@@ -217,6 +222,8 @@ if(k >= 4000)
 		agent.setV(v);
 		agent.setvMinus(vminus);
 		agent.setPower(power);
+		
+HEMMAProtocol.useCache = oldCacheValue;
 		
 		if(gradNorm*stepSize <= minStep && !improved)
 			return 0.0;

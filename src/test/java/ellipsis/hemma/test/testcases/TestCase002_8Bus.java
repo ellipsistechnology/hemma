@@ -58,7 +58,7 @@ public class TestCase002_8Bus extends TestCase
         // * Gradient not converging.
         
         setEach(agents, Agent::setAlphaMax,          /*1e6);//FIXME*/ 1e24);
-        setEach(agents, Agent::setLambdaMax,         1000.0);
+        setEach(agents, Agent::setLambdaMax,         10000.0);
 
 		return agents;
 	}

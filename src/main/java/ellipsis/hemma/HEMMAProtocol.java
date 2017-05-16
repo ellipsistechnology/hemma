@@ -23,7 +23,7 @@ import javax.naming.OperationNotSupportedException;
  */
 public class HEMMAProtocol
 {
-	public static boolean useCache = false; // FIXME testing code
+	public static boolean useCache = true; // FIXME testing code
 
 	private static final int PARAM_COUNT = 11;
 	
@@ -39,14 +39,9 @@ public class HEMMAProtocol
 	private static final int PARAM_G_PLUS = 6;
 	private static final int PARAM_G_MINUS = 7;
 	
-//	private static final int PARAM_COST_GRADIENT = 8;
-//	
-//	private static final int PARAM_G_PLUS_GRADIENT = 9;
-//	private static final int PARAM_G_MINUS_GRADIENT = 10;
-	
 	static class AgentCache implements IAgent
 	{
-		private Object[] params;
+		private double[] params;
 		private String name;
 		private IAgent agent;
 		
@@ -55,7 +50,7 @@ public class HEMMAProtocol
 			return agent.getType();
 		};
 
-		AgentCache(IAgent agent, Object[] params) 
+		AgentCache(IAgent agent, double[] params) 
 		{
 			this.params = params;
 			this.name = agent.getName();
@@ -74,6 +69,8 @@ public class HEMMAProtocol
 	
 		public double getV()                         
 		{
+//if(params[PARAM_V] != agent.getV())
+//	System.err.println("NOT EQUAL!");
 			if(useCache)
 				return (double) params[PARAM_V];
 			else
@@ -109,7 +106,7 @@ public class HEMMAProtocol
 			else
 				return agent.getLambdaMinus(); 
 		}       
-                                                                                                     //                                   
+
 		public double getAlpha()                     
 		{ 
 			if(useCache)
@@ -117,28 +114,36 @@ public class HEMMAProtocol
 			else
 				return agent.getAlpha(); 
 		}             
-                                                                                                     // 
+
 		public double gPlus()                        
 		{ 
-			if(useCache)
-				return (double) params[PARAM_G_PLUS];
-			else
-				return agent.gPlus();
+//			if(useCache)
+//				return (double) params[PARAM_G_PLUS];
+//			else
+//				return agent.gPlus();
+boolean oldValue = useCache;
+useCache = false;
+double gPlus = agent.gPlus();
+useCache = oldValue;
+return gPlus;
 		}                     
 		public double gMinus()                       
 		{ 
-			if(useCache)
-				return (double) params[PARAM_G_MINUS];
-			else
-				return agent.gMinus();
+//			if(useCache)
+//				return (double) params[PARAM_G_MINUS];
+//			else
+//				return agent.gMinus();
+boolean oldValue = useCache;
+useCache = false;
+double gMinus = agent.gMinus();
+useCache = oldValue;
+return gMinus;
 		}
-                                                                                                            //                                   
-//		public RealVector costGradient(IAgent wrt)   { return (RealVector) params[PARAM_COST_GRADIENT]; }   //{return agent.costGradient(wrt);}   // TODO may need to check that this is only called with appropriate wrt
-//                                                                                                            //                                   
-//		public RealVector gPlusGradient(IAgent wrt)  { return (RealVector) params[PARAM_G_PLUS_GRADIENT]; } //{return agent.gPlusGradient(wrt);} 
-//		public RealVector gMinusGradient(IAgent wrt) { return (RealVector) params[PARAM_G_MINUS_GRADIENT]; }//{return agent.gMinusGradient(wrt);}
 
-		public HEMMAProtocol getHemmaProtocol() { throw new RuntimeException(new OperationNotSupportedException()); }
+		public HEMMAProtocol getHemmaProtocol() 
+		{ 
+			throw new RuntimeException(new OperationNotSupportedException()); 
+		}
 	}
 
 	public static enum HEMMAState
@@ -171,7 +176,7 @@ public class HEMMAProtocol
 		HEMMAMessageType type;
 		//int ttl;
 		//int sessionId;
-		Object[] parameters;
+		double[] parameters;
 		
 		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type)
 		{
@@ -185,7 +190,7 @@ public class HEMMAProtocol
 //			this.ttl = ttl;
 //		}
 		
-		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type, /*int ttl, */Object... params)
+		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type, /*int ttl, */double... params)
 		{
 			this(source, type/*, ttl*/);
 			this.parameters = params;
@@ -257,7 +262,7 @@ public class HEMMAProtocol
 	 */
 	public void discoverNeighbours(HEMMAProtocol neighbour)
 	{
-		log("DN message received form "+neighbour.agent.getName());
+		log("DN message received from "+neighbour.agent.getName());
 		
 		// Add to known neighbours:
 		neighbours.add(neighbour);
@@ -393,7 +398,7 @@ public class HEMMAProtocol
 					discoverNeighbours(message.source);
 					break;
 				case CancelSession:
-					int sessionId = (Integer)message.parameters[0];
+					int sessionId = (int)message.parameters[0];
 					cancelSession(sessionId);
 					break;
 				case FinishSession:
@@ -513,9 +518,9 @@ else
 		return cache;
 	}
 
-	protected Object[] parameters(IAgent wrt)
+	protected double[] parameters(IAgent wrt)
 	{
-		Object[] params = new Object[PARAM_COUNT];
+		double[] params = new double[PARAM_COUNT];
 		
 		params[PARAM_V] = agent.getV();
 		params[PARAM_V_MINUS] = agent.getvMinus();
@@ -528,11 +533,6 @@ else
 
 		params[PARAM_G_PLUS] = agent.gPlus();
 		params[PARAM_G_MINUS] = agent.gMinus();
-
-//		params[PARAM_COST_GRADIENT] = agent.costGradient(wrt);
-//
-//		params[PARAM_G_PLUS_GRADIENT] = agent.gPlusGradient(wrt);
-//		params[PARAM_G_MINUS_GRADIENT] = agent.gMinusGradient(wrt);
 		
 		return params;
 	}
