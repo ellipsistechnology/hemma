@@ -11,7 +11,7 @@ public class TestCase002_8Bus extends TestCase
 {
 	public static void main(String[] args)
 	{
-		new TestCase002_8Bus().run(10000);
+		new TestCase002_8Bus().run(2000);
 	}
 
 	/**
@@ -58,7 +58,7 @@ public class TestCase002_8Bus extends TestCase
         // * Gradient not converging.
         
         setEach(agents, Agent::setAlphaMax,          /*1e6);//FIXME*/ 1e24);
-        setEach(agents, Agent::setLambdaMax,         10000.0);
+        setEach(agents, Agent::setLambdaMax,         1e6);
 
 		return agents;
 	}

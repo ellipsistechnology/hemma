@@ -117,27 +117,27 @@ public class HEMMAProtocol
 
 		public double gPlus()                        
 		{ 
-//			if(useCache)
-//				return (double) params[PARAM_G_PLUS];
-//			else
-//				return agent.gPlus();
-boolean oldValue = useCache;
-useCache = false;
-double gPlus = agent.gPlus();
-useCache = oldValue;
-return gPlus;
+			if(useCache)
+				return (double) params[PARAM_G_PLUS];
+			else
+				return agent.gPlus();
+//boolean oldValue = useCache;
+//useCache = false;
+//double gPlus = agent.gPlus();
+//useCache = oldValue;
+//return gPlus;
 		}                     
 		public double gMinus()                       
 		{ 
-//			if(useCache)
-//				return (double) params[PARAM_G_MINUS];
-//			else
-//				return agent.gMinus();
-boolean oldValue = useCache;
-useCache = false;
-double gMinus = agent.gMinus();
-useCache = oldValue;
-return gMinus;
+			if(useCache)
+				return (double) params[PARAM_G_MINUS];
+			else
+				return agent.gMinus();
+//boolean oldValue = useCache;
+//useCache = false;
+//double gMinus = agent.gMinus();
+//useCache = oldValue;
+//return gMinus;
 		}
 
 		public HEMMAProtocol getHemmaProtocol() 
