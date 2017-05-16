@@ -23,7 +23,7 @@ import javax.naming.OperationNotSupportedException;
  */
 public class HEMMAProtocol
 {
-//public boolean useCache = false; // FIXME testing code
+	public static boolean useCache = false; // FIXME testing code
 
 	private static final int PARAM_COUNT = 11;
 	
@@ -44,11 +44,16 @@ public class HEMMAProtocol
 //	private static final int PARAM_G_PLUS_GRADIENT = 9;
 //	private static final int PARAM_G_MINUS_GRADIENT = 10;
 	
-	static class AgentCache implements IAgent 
+	static class AgentCache implements IAgent
 	{
 		private Object[] params;
 		private String name;
 		private IAgent agent;
+		
+		public ellipsis.hemma.IAgent.AgentType getType() 
+		{
+			return agent.getType();
+		};
 
 		AgentCache(IAgent agent, Object[] params) 
 		{
@@ -67,18 +72,66 @@ public class HEMMAProtocol
 		}
 		public String toString() { return "CACHE:"+name; }
 	
-		public double getV()                         { return (double) params[PARAM_V]; }                   //{ return agent.getV(); }
+		public double getV()                         
+		{
+			if(useCache)
+				return (double) params[PARAM_V];
+			else
+				return agent.getV(); 
+		}          
 
-		public double getvMinus()                    { return (double) params[PARAM_V_MINUS]; }             //{ return agent.getvMinus(); }             
-		public double getPower()                     { return (double) params[PARAM_POWER]; }               //{ return agent.getPower(); }              
+		public double getvMinus()                    
+		{ 
+			if(useCache)
+				return (double) params[PARAM_V_MINUS];
+			else
+				return agent.getvMinus(); 
+		}
+		public double getPower()                     
+		{ 
+			if(useCache)
+				return (double) params[PARAM_POWER];
+			else
+				return agent.getPower(); 
+		}             
 
-		public double getLambdaPlus()                { return (double) params[PARAM_LAMBDA_PLUS]; }         //{ return agent.getLambdaPlus(); }         
-		public double getLambdaMinus()               { return (double) params[PARAM_LAMBDA_MINUS]; }        //{ return agent.getLambdaMinus(); }        
-
-		public double getAlpha()                     { return (double) params[PARAM_ALPHA]; }               //{ return agent.getAlpha(); }              
-
-		public double gPlus()                        { return (double) params[PARAM_G_PLUS]; }              //{return agent.gPlus();}            
-		public double gMinus()                       { return (double) params[PARAM_G_MINUS]; }             //{return agent.gMinus();}           
+		public double getLambdaPlus()                
+		{ 
+			if(useCache)
+				return (double) params[PARAM_LAMBDA_PLUS]; 
+			else
+				return agent.getLambdaPlus(); 
+		}        
+		public double getLambdaMinus()               
+		{ 
+			if(useCache)
+				return (double) params[PARAM_LAMBDA_MINUS];
+			else
+				return agent.getLambdaMinus(); 
+		}       
+                                                                                                     //                                   
+		public double getAlpha()                     
+		{ 
+			if(useCache)
+				return (double) params[PARAM_ALPHA];
+			else
+				return agent.getAlpha(); 
+		}             
+                                                                                                     // 
+		public double gPlus()                        
+		{ 
+			if(useCache)
+				return (double) params[PARAM_G_PLUS];
+			else
+				return agent.gPlus();
+		}                     
+		public double gMinus()                       
+		{ 
+			if(useCache)
+				return (double) params[PARAM_G_MINUS];
+			else
+				return agent.gMinus();
+		}
                                                                                                             //                                   
 //		public RealVector costGradient(IAgent wrt)   { return (RealVector) params[PARAM_COST_GRADIENT]; }   //{return agent.costGradient(wrt);}   // TODO may need to check that this is only called with appropriate wrt
 //                                                                                                            //                                   
@@ -406,9 +459,9 @@ public class HEMMAProtocol
 
 	public Iterable<IAgent> neighbourSet()
 	{
-//if(useCache)
-//		return neighbourCache.values();
-//else
+if(useCache)
+		return neighbourCache.values();
+else
 	return connections;
 		
 //		return new Iterable<IAgent>() {

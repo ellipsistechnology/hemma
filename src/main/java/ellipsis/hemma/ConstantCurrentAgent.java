@@ -9,6 +9,12 @@ public class ConstantCurrentAgent extends Agent
 {
 	private double constantCurrent;
 	
+	@Override
+	public AgentType getType() 
+	{
+		return AgentType.CC;
+	}
+	
 	public ConstantCurrentAgent(double current)
 	{
 		this.constantCurrent = current;

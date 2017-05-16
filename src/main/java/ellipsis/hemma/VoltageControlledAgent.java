@@ -10,6 +10,12 @@ public class VoltageControlledAgent extends Agent
 	private static final double A = 1.0e-2;
 	
 	@Override
+	public AgentType getType() 
+	{
+		return IAgent.AgentType.VC;
+	}
+	
+	@Override
 	public double cost()
 	{
 		double p = getPower();
@@ -41,7 +47,7 @@ public class VoltageControlledAgent extends Agent
 			return vector(0.0, 0.0, 2*A*p);
 		} 
 		else
-			return vector(0.0, 0.0, 0.0);
+			return vector(0.0, 0.0, 0.0); // FIXME this should never be called
 	}
 	
 	@Override
@@ -57,7 +63,7 @@ public class VoltageControlledAgent extends Agent
 			return vector(sum, getV()*conductanceSum(), -1.0);
 		} 
 		else
-			return vector(-getV()*conductance(wrt), -getV()*conductance(wrt), 0.0);
+			return vector(-getV()*conductance(wrt), -getV()*conductance(wrt), 0.0); // FIXME this should never be called
 	}
 	
 	@Override

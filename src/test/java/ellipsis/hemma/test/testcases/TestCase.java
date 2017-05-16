@@ -76,6 +76,10 @@ public abstract class TestCase
 					log.print(",");
 			}
 			
+if(k >= 4000)
+	System.out.print(' '); 
+// FIXME Pure gradient decent is stopping well short due to backtracking giving 0 step size
+			
 			for (Agent agent : agents)
 			{
 //agent.getHemmaProtocol().useCache = true;
@@ -103,9 +107,9 @@ public abstract class TestCase
 					double stepLength = 1.0; // how far we have stepped (if too small then no point in continuing - usually an issue due to projection)
 					int j = 0;
 					while(grad.getNorm() > epsilon && stepLength > 1e-6 && j < maxGradDecIterations)
-					{// TODO check what's happening after 1000 or so iterations - is it getting into here at all? Seems to have converged with grad != 0.
+					{
 						++j;
-						
+
 						// Approximately find the best step size:
 						double stepSize = backtrack(sol, agents, agent, grad); // TODO replace with local backtracking
 						RealVector step = grad.mapMultiply(-stepSize);
@@ -179,7 +183,7 @@ public abstract class TestCase
 		double vminus = agent.getvMinus();
 		double power = agent.getPower();
 		
-		double minStep = 1e-9;
+		double minStep = 1e-24;
 		double gradNorm = grad.getNorm();
 		while(
 				sol.lagrange(agents) > lagrange - stepSize*0.5*grad2 && 
@@ -195,9 +199,11 @@ public abstract class TestCase
 				System.out.println(stepSize+","+sol.lagrange(agents)+","+(lagrange - 0.5*stepSize*grad2));
 		}
 		
+		boolean improved = sol.lagrange(agents) < lagrange;
+		
 		if(debug)
 		{
-			double d = 1e-5;
+			double d = 1e-12;
 			for(double s = 0; s < 10*d; s += d)
 			{
 				agent.setV(v+grad.getEntry(0)*s);
@@ -212,7 +218,7 @@ public abstract class TestCase
 		agent.setvMinus(vminus);
 		agent.setPower(power);
 		
-		if(gradNorm*stepSize <= minStep)
+		if(gradNorm*stepSize <= minStep && !improved)
 			return 0.0;
 		else
 			return stepSize;

@@ -11,7 +11,7 @@ public class TestCase002_8Bus extends TestCase
 {
 	public static void main(String[] args)
 	{
-		new TestCase002_8Bus().run(2000);
+		new TestCase002_8Bus().run(10000);
 	}
 
 	/**
@@ -50,14 +50,14 @@ public class TestCase002_8Bus extends TestCase
         /* 101: {0.1423344359; 1.0040963181; 0.3163213772; 0.0497193563; 0.9958275767} => -0.0010048463852904215 */
         
         //                              Convergence: <2000*   4000
-        setEach(agents, Agent::setAlpha,             0.08); //0.1);          //0.7291686544); //1.0335558193); //0.7437170678);
-        setEach(agents, Agent::setAlphaMultiplier,   1.02); //1.001);        //1.0205134478); //1.0032247029); //1.0022891615);
-        setEach(agents, Agent::setLambdaMultiplier,  0.18); //0.1663869982); //0.0516760301); //0.0880506421);
+        setEach(agents, Agent::setAlpha,             /*100.0);//FIXME*/ 0.08); //0.1);          //0.7291686544); //1.0335558193); //0.7437170678);
+        setEach(agents, Agent::setAlphaMultiplier,   /*1.0);  //FIXME*/ 1.02); //1.001);        //1.0205134478); //1.0032247029); //1.0022891615);
+        setEach(agents, Agent::setLambdaMultiplier,  /*0.0);  //FIXME*/ 0.18); //0.1663869982); //0.0516760301); //0.0880506421);
         setEach(agents, Agent::setEpsilon,           0.11); //0.0594168354); //0.000001);     //0.000001);    
         setEach(agents, Agent::setEpsilonMultiplier, 0.991);//0.995573057);  //0.9919932057); //0.999999);
         // * Gradient not converging.
         
-        setEach(agents, Agent::setAlphaMax,          1e24);
+        setEach(agents, Agent::setAlphaMax,          /*1e6);//FIXME*/ 1e24);
         setEach(agents, Agent::setLambdaMax,         1000.0);
 
 		return agents;

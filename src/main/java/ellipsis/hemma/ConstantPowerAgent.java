@@ -9,6 +9,12 @@ public class ConstantPowerAgent extends Agent
 {
 	private double constantPower;
 	
+	@Override
+	public AgentType getType() 
+	{
+		return AgentType.CP;
+	}
+	
 	public ConstantPowerAgent(double power)
 	{
 		this.constantPower = power;
@@ -51,7 +57,7 @@ public class ConstantPowerAgent extends Agent
 			return vector(sum, getV()*conductanceSum(), 0.0);
 		} 
 		else
-			return vector(-getV()*conductance(wrt), -getV()*conductance(wrt), 0.0);
+			return vector(-getV()*conductance(wrt), -getV()*conductance(wrt), 0.0); // FIXME not called
 	}
 	
 	@Override

@@ -3,6 +3,13 @@ package ellipsis.hemma;
 
 public interface IAgent 
 {
+	public static enum AgentType
+	{
+		CC, CP, VC
+	}
+	
+	AgentType getType();
+	
 	String getName();
 	
 	/**

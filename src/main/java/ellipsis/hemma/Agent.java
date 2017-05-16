@@ -88,7 +88,7 @@ public abstract class Agent implements IAgent
 		// Cost gradients:
 		// \nabla_i \sum c_i(x)
 		RealVector costGrad = costGradient(this);
-		RealVector neighbourCostGradients = sumV(n -> neighbourCostGradient(n), hemmaProtocol.neighbourSet(), 3); // this will always return zero now since the cost only uses local variables
+		RealVector neighbourCostGradients = sumV(n -> neighbourCostGradient(n), hemmaProtocol.neighbourSet(), 3); // FIXME this will always return zero now since the cost only uses local variables
 		
 		// Penalty gradients for positive power flow:
 		// \nabla_i \sum \nabla_i g^+_i(x) (\lambda^+ + \alpha g^+_i(x))
@@ -114,19 +114,40 @@ public abstract class Agent implements IAgent
 	
 	// TODO implement the gradients as commonly known functions shared by any type of agent
 	
-	private RealVector neighbourCostGradient(IAgent n) {
-		// TODO Auto-generated method stub
-		return null;
+	private RealVector neighbourCostGradient(IAgent n) 
+	{
+		return vector(0.0, 0.0, 0.0);
+		
 	}
 
-	private RealVector neighbourGPlusGradient(IAgent n) {
-		// TODO Auto-generated method stub
-		return null;
+	private RealVector neighbourGPlusGradient(IAgent n) 
+	{
+		switch(n.getType())
+		{
+		case CC:
+			return vector(-conductance(n), -conductance(n), 0.0);
+		case CP:
+			return vector(-n.getV()*conductance(n), -n.getV()*conductance(n), 0.0);
+		case VC:
+			return vector(-n.getV()*conductance(n), -n.getV()*conductance(n), 0.0);
+		default:
+			return null; // Should never be called.
+		}
 	}
 
-	private RealVector neighbourGMinusGradient(IAgent n) {
-		// TODO Auto-generated method stub
-		return null;
+	private RealVector neighbourGMinusGradient(IAgent n) 
+	{
+		switch(n.getType())
+		{
+		case CC:
+			return vector(0.0, conductance(n), 0.0);
+		case CP:
+			return vector(0.0, n.getV()*conductance(n), 0.0);
+		case VC:
+			return vector(0.0, n.getV()*conductance(n), 0.0);
+		default:
+			return null; // Should never be called.
+		}
 	}
 
 	/**
