@@ -222,9 +222,9 @@ public class HEMMAProtocol
 	private Set<IAgent> connections = new HashSet<>(); // 'Physical connections'.
 	private Set<HEMMAProtocol> neighbours = new HashSet<>(); // Discovered neighbours.
 	private Map<HEMMAProtocol, IAgent> neighbourCache = new HashMap<>(); // Cached values from variable updates.
-	private IAgent agent;
+	private Agent agent;
 	
-	public HEMMAProtocol(IAgent agent)
+	public HEMMAProtocol(Agent agent)
 	{
 		this.agent = agent;
 	}
@@ -553,5 +553,38 @@ else
 	public String toString() 
 	{
 		return "HEMMA:"+agent.toString();
+	}
+
+	public void updateNeighbourG(double[] delta) 
+	{
+		for (IAgent n : neighbourCache.values()) 
+		{
+			if(n instanceof AgentCache)
+			{
+				AgentCache cache = (AgentCache)n;
+				double deltaV = delta[0];
+				double deltaVMinus = delta[1];
+				switch (cache.getType()) 
+				{
+				case VC:
+				case CP:
+					double deltaGPlus = -n.getV()*(deltaV+deltaVMinus)*agent.conductance(n);
+					double deltaGMinus = +n.getV()*deltaVMinus*agent.conductance(n);
+					cache.params[PARAM_G_PLUS] += deltaGPlus;
+					cache.params[PARAM_G_MINUS] += deltaGMinus;
+//useCache = false;
+//if(cache.params[PARAM_G_PLUS] != cache.agent.gPlus())
+//	System.out.println(cache.params[PARAM_G_PLUS] + " != " + cache.agent.gPlus());
+//useCache = true;
+					break;
+				case CC:
+					cache.params[PARAM_G_PLUS] += -(deltaV+deltaVMinus)*agent.conductance(n);
+					cache.params[PARAM_G_MINUS] += deltaVMinus*agent.conductance(n);
+					break;
+				default:
+					throw new RuntimeException();
+				}
+			}
+		}
 	}
 }

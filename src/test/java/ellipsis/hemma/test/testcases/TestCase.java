@@ -41,6 +41,7 @@ public abstract class TestCase
 		Set<Agent> agents = init();
 		agents.forEach(Agent::switchOn);
 		Solution solution = optimise(agents, K);
+HEMMAProtocol.useCache = false;
 		solution.printCSV(1000, agents.size()*2);
 	}
 
@@ -124,9 +125,13 @@ public abstract class TestCase
 						// Project back into the constraint set:
 						agent.project();
 						
-						// Check how far we've stepped:
+						// Update neighbours' g(x) values:
 						RealVector newState = agent.state();
-						stepLength = newState.subtract(oldState).getNorm();
+						RealVector delta = newState.subtract(oldState);
+						agent.getHemmaProtocol().updateNeighbourG(delta.toArray());
+						
+						// Check how far we've stepped:
+						stepLength = delta.getNorm();
 						
 						// Next gradient:
 						grad = grad(agent, i);
