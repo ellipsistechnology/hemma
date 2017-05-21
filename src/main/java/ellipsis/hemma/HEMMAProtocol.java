@@ -223,6 +223,8 @@ public class HEMMAProtocol
 	private Set<HEMMAProtocol> neighbours = new HashSet<>(); // Discovered neighbours.
 	private Map<HEMMAProtocol, IAgent> neighbourCache = new HashMap<>(); // Cached values from variable updates.
 	private Agent agent;
+	private double currentSessionId = -1;
+	private Set<HEMMAProtocol> acceptedSSResponses;
 	
 	public HEMMAProtocol(Agent agent)
 	{
@@ -297,18 +299,100 @@ public class HEMMAProtocol
 	 * 
 	 * Neighbours.
 	 */
-	public void startSession(int sessionId)
+	public void startSession(HEMMAProtocol sender, HEMMAMessage ssRequest)
 	{
+		if(sender != this)
+			log("SS received from "+sender.agent.getName()+" with session ID "+ssRequest.parameters[0]);
+		
 		switch(state)
 		{
 		case Idle:
+		{
 			state = SessionInitialisation;
+			log("state transition: Idle to Session Initialisation");
+			acceptedSSResponses = new HashSet<HEMMAProtocol>();
+			
+			double sessionId;
+			if(!sender.equals(this))
+			{
+				acceptedSSResponses.add(sender);
+				checkSessionAccepted();
+				sessionId = ssRequest.parameters[0];
+				
+				// Send an accept response to the sender of the RS request (if applicable):
+				log("sending SS accept message to "+sender.agent.getName());
+				sender.message(new HEMMAMessage(this, HEMMAMessageType.StartSession_accepted, sessionId));
+				
+				log("forwarding SS message to neighbours");
+			}
+			else
+			{
+				// Create a new session ID if required:
+				currentSessionId = (int)(rand.nextDouble()*Integer.MAX_VALUE);
+				sessionId = currentSessionId;
+				log("creating new session with ID "+sessionId+"; broadcasting to neighbours");
+			}
+			
+			// Send Session Initialisation request to all neighbours 
+			// (except the sender of the RS request if applicable):
+			broadcast(new HEMMAMessage(this, HEMMAMessageType.StartSession, sessionId), sender.agent);
+			break;
+		}
 		case SessionInitialisation:
-			// TODO check if current session is superceded and accept or reject accordingly
-			// TODO send SS on to neighbours if accepting the request
-			// TODO send accept response if accepting the request
+		case SessionExecution:
+		{
+			// If received ID (from the SS request) is higher than current ID:
+			//   Change session ID according to received Start Session request
+			//   Send Cancel Session request with the old session ID
+			//   Forward on the SS message
+			//   Respond to SS request with acceptance
+			double sessionId = ssRequest.parameters[0];
+			if(currentSessionId < sessionId)
+			{
+				log("session superceded; cancelling old session ("+currentSessionId+"); forwarding SS request ("+sessionId+"); accepting SS request("+sessionId+")");
+				
+				broadcast(new HEMMAMessage(this, HEMMAMessageType.CancelSession, currentSessionId));
+				currentSessionId = sessionId;
+				broadcast(new HEMMAMessage(this, HEMMAMessageType.StartSession, sessionId), sender.agent);
+				sender.message(new HEMMAMessage(this, HEMMAMessageType.StartSession_accepted, sessionId));
+				
+				// Changing to new session so reset accepted responses:
+				acceptedSSResponses = new HashSet<HEMMAProtocol>();
+				acceptedSSResponses.add(sender);
+				checkSessionAccepted();
+			}
+			// If received ID is lower than current ID:
+			//   Send Cancel Session request with the received session ID
+			else if(currentSessionId > sessionId)
+			{
+				log("rejecting SS and broadcasting CS");
+				broadcast(new HEMMAMessage(this, HEMMAMessageType.CancelSession, sessionId));
+			}
+			// if(currentSessionId == sessionId) then do nothing and don't forward to avoid looping the message forever
+			break;
+		}
 		default:
 			break;
+		}
+	}
+	
+	public void startSessionAccepted(HEMMAMessage ssResponse)
+	{
+		double sessionId = ssResponse.parameters[0];
+		if(sessionId == currentSessionId)
+		{
+			log("SS accepted by "+ssResponse.source.agent.getName());
+			acceptedSSResponses.add(ssResponse.source);
+			checkSessionAccepted();
+		}
+	}
+
+	protected void checkSessionAccepted()
+	{
+		if(neighbours.containsAll(acceptedSSResponses))
+		{
+			state = HEMMAState.SessionExecution;
+			log("SS accepted by all neighbours; state transitioned to "+state);
 		}
 	}
 	
@@ -318,9 +402,14 @@ public class HEMMAProtocol
 	 * 
 	 * Broadcast.
 	 */
-	public void cancelSession(int sessionId)
+	public void cancelSession(HEMMAMessage csRequest)
 	{
-		
+		double sessionId = csRequest.parameters[0];
+		if(currentSessionId == sessionId)
+		{
+			currentSessionId = -1;
+			state = Idle;
+		}
 	}
 	
 	/**
@@ -361,7 +450,7 @@ public class HEMMAProtocol
 		neighbourCache.put(hemma, cache);
 	}
 	
-	Random rand = new Random(0);
+	static Random rand = new Random(0);
 	public void execute()
 	{
 		do
@@ -370,8 +459,9 @@ public class HEMMAProtocol
 			switch (state)
 			{
 			case Idle:
-				// TODO handle state change to trigger a session start request
-				//startSession(rand.nextInt());
+				// For the sake of simulation, assume that in the idle state the agent's
+				// physical state has changed enough to trigger a session start request:
+				startSession(this, null);
 				break;
 			case SessionExecution:
 				// TODO handle completion criteria met
@@ -379,7 +469,7 @@ public class HEMMAProtocol
 				// TODO send FS to neighbours
 				break;
 			default:
-				throw new RuntimeException("Unsupported state found during state engine execution: "+state);
+//				throw new RuntimeException("Unsupported state found during state engine execution: "+state);
 			}
 			
 			// Process incoming messages:
@@ -398,8 +488,7 @@ public class HEMMAProtocol
 					discoverNeighbours(message.source);
 					break;
 				case CancelSession:
-					int sessionId = (int)message.parameters[0];
-					cancelSession(sessionId);
+					cancelSession(message);
 					break;
 				case FinishSession:
 					
@@ -414,10 +503,10 @@ public class HEMMAProtocol
 					identifyNeighbour(message.source);
 					break;
 				case StartSession:
-					
+					startSession(message.source, message);
 					break;
 				case StartSession_accepted:
-					
+					startSessionAccepted(message);
 					break;
 				case StartSession_reject:
 					
@@ -445,11 +534,17 @@ public class HEMMAProtocol
 		}
 	}
 
-	protected void broadcast(HEMMAMessage message) 
+	protected void broadcast(HEMMAMessage message)
+	{
+		broadcast(message, null);
+	}
+	
+	protected void broadcast(HEMMAMessage message, IAgent exclude)
 	{
 		for (IAgent agent : connections) 
 		{
-			agent.getHemmaProtocol().message(message);
+			if(!agent.equals(exclude))
+				agent.getHemmaProtocol().message(message);
 		}
 	}
 
@@ -586,5 +681,10 @@ else
 				}
 			}
 		}
+	}
+	
+	public HEMMAState getState() 
+	{
+		return state;
 	}
 }

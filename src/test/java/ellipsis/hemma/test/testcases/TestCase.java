@@ -41,7 +41,7 @@ public abstract class TestCase
 		Set<Agent> agents = init();
 		agents.forEach(Agent::switchOn);
 		Solution solution = optimise(agents, K);
-HEMMAProtocol.useCache = false;
+		HEMMAProtocol.useCache = false;
 		solution.printCSV(1000, agents.size()*2);
 	}
 
@@ -80,7 +80,6 @@ HEMMAProtocol.useCache = false;
 			
 //if(k >= 4000)
 //	System.out.print(' '); 
-// FIXME Pure gradient decent is stopping well short due to backtracking giving 0 step size
 			
 			for (Agent agent : agents)
 			{
@@ -89,10 +88,13 @@ HEMMAProtocol.useCache = false;
 				
 				agent.getHemmaProtocol().execute();
 				
+				if(!agent.getHemmaProtocol().getState().equals(HEMMAProtocol.HEMMAState.SessionExecution))
+					continue;
+				
 				// Minimise (14) (TODO move this to agent):
 				
 				// Update values form neighbours:
-				if(!agent.updateValues())
+				if(!agent.updateValues()) // TODO move this to after execution to get quicker updates
 					continue;
 				
 				/*
@@ -103,8 +105,6 @@ HEMMAProtocol.useCache = false;
 				 * gradient not being able to drop below epsilon).
 				 */
 				int maxGradDecIterations = 100;
-//if(agent.gradient().getNorm() > Math.max(Math.abs(agent.gPlus()),  Math.abs(agent.gMinus())))
-//{
 				for(int i = 0; i < 3; ++i) // one dimension at a time - this is much faster due to a steep, curved Lagrange function 
 				{
 					RealVector grad = grad(agent, i);
@@ -137,8 +137,7 @@ HEMMAProtocol.useCache = false;
 						grad = grad(agent, i);
 					}
 				}
-//}
-//else
+				
 				// Step dual variables (15) and penalty multiplier if g(x) is too big:
 				double targetG = Math.max(1e-3, epsilon);
 				if(Math.abs(agent.gPlus()) > targetG || Math.abs(agent.gMinus()) > targetG)
