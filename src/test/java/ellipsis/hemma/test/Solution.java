@@ -41,6 +41,8 @@ public class Solution
 	public ArrayList<RealVector> epsilonValues = new ArrayList<>();
 	public ArrayList<Double> alphaValues = new ArrayList<>();
 	public ArrayList<RealVector> lambdaValues = new ArrayList<>();
+	public ArrayList<RealVector> hValues = new ArrayList<>();
+	public ArrayList<Double> trueH = new ArrayList<>();
 
 	public void storeDataPoint(Set<Agent> agents)
 	{
@@ -53,6 +55,8 @@ public class Solution
 		epsilonValues.add(vector(agents, Agent::getEpsilon));
 		alphaValues.add(agents.iterator().next().getAlpha());
 		lambdaValues.add(appendVectors(agents, n -> vector(n.getLambdaPlus(), n.getLambdaMinus())));
+		hValues.add(vector(agents, Agent::getAverageConvergenceApproximation));
+		trueH.add(sum(Agent::getPreviousConvergenceMeasure, agents)/agents.size());
 	}
 	
 	public Double lagrange(Set<Agent> agents)
@@ -130,6 +134,11 @@ public class Solution
 		{
 			out.print("lambda"+i+",");
 		}
+		for (int i = 0; i < agentCount; i++)
+		{
+			out.print("~h"+i+",");
+		}
+		out.print("av[h(x)]");
 		out.println();
 		
 		// Data:
@@ -167,6 +176,12 @@ public class Solution
 				{
 					out.print(lambda.getEntry(i)+",");
 				}
+				RealVector h = hValues.get(k);
+				for (int i = 0; i < agentCount; i++)
+				{
+					out.print(h.getEntry(i)+",");
+				}
+				out.print(trueH.get(k));
 				
 				out.println();
 			}

@@ -60,8 +60,6 @@ public abstract class TestCase
 	 */
 	public Solution optimise(Set<Agent> agents, int K)
 	{
-		// TODO Initialise session first through HEMMA messages.
-		
 		// Init:
 		Solution sol = new Solution(); // This stores the important values from each iteration for logging.
 		agents.forEach(Agent::project); // Project the state of each agent to ensure that we start from a feasible solution.
@@ -78,12 +76,8 @@ public abstract class TestCase
 					log.print(",");
 			}
 			
-//if(k >= 4000)
-//	System.out.print(' '); 
-			
 			for (Agent agent : agents)
 			{
-//agent.getHemmaProtocol().useCache = true;
 				double epsilon = agent.getEpsilon();
 				
 				agent.getHemmaProtocol().execute();
@@ -93,9 +87,11 @@ public abstract class TestCase
 				
 				// Minimise (14) (TODO move this to agent):
 				
-				// Update values form neighbours:
-				if(!agent.updateValues()) // TODO move this to after execution to get quicker updates
+				// Check that neighbours are known:
+				if(!agent.getHemmaProtocol().initialised())
 					continue;
+				
+				RealVector previousState = agent.state();
 				
 				/*
 				 * Stochastic gradient decent until Lagrange gradient is less than epsilon,
@@ -148,6 +144,12 @@ public abstract class TestCase
 				
 				// Step epsilon:
 				agent.stepEpsilon();
+				
+				// Inform neighbours of values:
+				agent.updateValues();
+				
+				// Update average convergence estaimte:
+				agent.updateConvergence(previousState);
 			}
 			
 			// Save state for logging later:

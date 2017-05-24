@@ -7,7 +7,11 @@ import static ellipsis.common.math.VectorHelper.vector;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
+
+import ellipsis.hemma.HEMMAProtocol.HEMMAMessage;
+import ellipsis.hemma.HEMMAProtocol.HEMMAMessageType;
 
 public abstract class Agent implements IAgent
 {
@@ -24,6 +28,10 @@ public abstract class Agent implements IAgent
 	private double lambdaPlus, lambdaMinus, lambdaMax, lambdaMultiplier = 1.0;
 	private double alpha, alphaMax, alphaMultiplier;
 	private double epsilon, epsilonMultiplier;
+	private double averageConvergenceApproximation = 1.0;
+	private double averageConvergenceCorrection = 0;
+	private double previousConvergence = 1.0;
+	private double previousConvergenceMeasure = 1.0;
 
 	// HEMMA protocol variables:
 //	protected AgentCommunicator communicator;
@@ -256,6 +264,50 @@ public abstract class Agent implements IAgent
 	{
 		epsilon *= epsilonMultiplier;
 	}
+	
+	public void updateValues()
+	{
+		hemmaProtocol.updateValues();
+	}
+
+	public boolean completionCriteriaMet() 
+	{
+		return false;
+	}
+
+	public void updateConvergence(RealVector previousState) 
+	{
+		double xi = 0.2;
+		
+		// Convergence measure:
+		double h_i = new ArrayRealVector(new double[]{gPlus(), gMinus()}).getNorm() + state().subtract(previousState).getNorm();
+		previousConvergenceMeasure = h_i;
+		
+		// Change in convergence measure:
+		double delta = h_i - previousConvergence;
+		previousConvergence = h_i;
+		
+		// Set neighbour corrections:
+		for (IAgent n : hemmaProtocol.neighbourSet()) 
+		{
+			double correction = xi*(n.getAverageConvergenceApproximation() - averageConvergenceApproximation);
+			n.getHemmaProtocol().message(new HEMMAMessage(hemmaProtocol, HEMMAMessageType.ConvergenceCorrection, correction));
+		}
+		
+		// Update average convergence approximation by consensus:
+		averageConvergenceApproximation += 
+				xi*sum(n -> n.getAverageConvergenceApproximation() - averageConvergenceApproximation, hemmaProtocol.neighbourSet())
+				- averageConvergenceCorrection
+				+ delta;
+		
+		// Reset correction:
+		averageConvergenceCorrection = 0;
+	}
+	
+	public void addAverageConsensusCorrection(double correction)
+	{
+		averageConvergenceCorrection += correction;
+	}
 
 	
 	//// Neighbour Management ////
@@ -483,12 +535,6 @@ public abstract class Agent implements IAgent
 		setPower(state.getEntry(2));
 	}
 	
-	public boolean updateValues()
-	{
-		hemmaProtocol.updateValues();
-		return hemmaProtocol.initialised();
-	}
-	
 	@Override
 	public int hashCode() 
 	{
@@ -505,5 +551,16 @@ public abstract class Agent implements IAgent
 	public String toString() 
 	{
 		return name+"[x="+state()+"|lambda={"+getLambdaPlus()+","+getLambdaMinus()+"}|alpha="+getAlpha()+"]";
+	}
+	
+	@Override
+	public double getAverageConvergenceApproximation() 
+	{
+		return averageConvergenceApproximation;
+	}
+	
+	public double getPreviousConvergenceMeasure() 
+	{
+		return previousConvergenceMeasure;
 	}
 }

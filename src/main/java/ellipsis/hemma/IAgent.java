@@ -37,4 +37,6 @@ public interface IAgent
 //	void updateValues();
 
 	HEMMAProtocol getHemmaProtocol();
+	
+	double getAverageConvergenceApproximation();
 }
