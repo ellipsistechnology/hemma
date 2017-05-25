@@ -14,6 +14,7 @@ import java.util.Set;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
+import ellipsis.common.math.VectorHelper;
 import ellipsis.hemma.Agent;
 
 public class Solution
@@ -43,6 +44,7 @@ public class Solution
 	public ArrayList<RealVector> lambdaValues = new ArrayList<>();
 	public ArrayList<RealVector> hValues = new ArrayList<>();
 	public ArrayList<Double> trueH = new ArrayList<>();
+	public ArrayList<RealVector> hValuesCorrection = new ArrayList<>();
 
 	public void storeDataPoint(Set<Agent> agents)
 	{
@@ -50,12 +52,13 @@ public class Solution
 		xs.add(x);
 		lagrangeValues.add(lagrange(agents));
 		costValues.add(cost(agents));
-		gradientValues.add(appendVectors(agents, n -> n.gradient()));
+		gradientValues.add(appendVectors(agents, n -> VectorHelper.abs(n.gradient().mapDivide(n.getAlpha()))));
 		gValues.add(appendVectors(agents, n -> vector(n.gPlus(), n.gMinus())));
 		epsilonValues.add(vector(agents, Agent::getEpsilon));
 		alphaValues.add(agents.iterator().next().getAlpha());
 		lambdaValues.add(appendVectors(agents, n -> vector(n.getLambdaPlus(), n.getLambdaMinus())));
 		hValues.add(vector(agents, Agent::getAverageConvergenceApproximation));
+		hValuesCorrection.add(vector(agents, Agent::getAverageConvergenceCorrection));
 		trueH.add(sum(Agent::getPreviousConvergenceMeasure, agents)/agents.size());
 	}
 	
@@ -138,6 +141,10 @@ public class Solution
 		{
 			out.print("~h"+i+",");
 		}
+		for (int i = 0; i < agentCount; i++)
+		{
+			out.print("w"+i+",");
+		}
 		out.print("av[h(x)]");
 		out.println();
 		
@@ -180,6 +187,11 @@ public class Solution
 				for (int i = 0; i < agentCount; i++)
 				{
 					out.print(h.getEntry(i)+",");
+				}
+				RealVector w = hValuesCorrection.get(k);
+				for (int i = 0; i < agentCount; i++)
+				{
+					out.print(w.getEntry(i)+",");
 				}
 				out.print(trueH.get(k));
 				

@@ -30,7 +30,6 @@ public abstract class Agent implements IAgent
 	private double epsilon, epsilonMultiplier;
 	private double averageConvergenceApproximation = 1.0;
 	private double averageConvergenceCorrection = 0;
-	private double previousConvergence = 1.0;
 	private double previousConvergenceMeasure = 1.0;
 
 	// HEMMA protocol variables:
@@ -272,20 +271,25 @@ public abstract class Agent implements IAgent
 
 	public boolean completionCriteriaMet() 
 	{
-		return false;
+		double convergenceTarget = 1e-3;
+		for (IAgent n : hemmaProtocol.neighbourSet()) 
+		{
+			if(n.getAverageConvergenceApproximation() >= convergenceTarget)
+				return false;
+		}
+		return getAverageConvergenceApproximation() < convergenceTarget && previousConvergenceMeasure < convergenceTarget;
 	}
 
 	public void updateConvergence(RealVector previousState) 
 	{
-		double xi = 0.2;
+		double xi = 0.05;
 		
 		// Convergence measure:
 		double h_i = new ArrayRealVector(new double[]{gPlus(), gMinus()}).getNorm() + state().subtract(previousState).getNorm();
-		previousConvergenceMeasure = h_i;
 		
 		// Change in convergence measure:
-		double delta = h_i - previousConvergence;
-		previousConvergence = h_i;
+		double delta = h_i - previousConvergenceMeasure;
+		previousConvergenceMeasure = h_i;
 		
 		// Set neighbour corrections:
 		for (IAgent n : hemmaProtocol.neighbourSet()) 
@@ -562,5 +566,10 @@ public abstract class Agent implements IAgent
 	public double getPreviousConvergenceMeasure() 
 	{
 		return previousConvergenceMeasure;
+	}
+	
+	public double getAverageConvergenceCorrection() 
+	{
+		return averageConvergenceCorrection;
 	}
 }

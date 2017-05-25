@@ -173,8 +173,6 @@ public class HEMMAProtocol
 	{
 		HEMMAProtocol source;
 		HEMMAMessageType type;
-		//int ttl;
-		//int sessionId;
 		double[] parameters;
 		
 		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type)
@@ -182,12 +180,6 @@ public class HEMMAProtocol
 			this.source = source;
 			this.type = type;
 		}
-		
-//		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type, int ttl)
-//		{
-//			this(source, type);
-//			this.ttl = ttl;
-//		}
 		
 		public HEMMAMessage(HEMMAProtocol source, HEMMAMessageType type, /*int ttl, */double... params)
 		{
@@ -222,6 +214,7 @@ public class HEMMAProtocol
 	private Set<HEMMAProtocol> neighbours = new HashSet<>(); // Discovered neighbours.
 	private Map<HEMMAProtocol, IAgent> neighbourCache = new HashMap<>(); // Cached values from variable updates.
 	private Agent agent;
+	private Set<HEMMAProtocol> finishedNeighbours = new HashSet<>();
 	
 	public HEMMAProtocol(Agent agent)
 	{
@@ -359,7 +352,7 @@ public class HEMMAProtocol
 		if(neighbourCache.keySet().containsAll(neighbours))
 		{
 			transitionState(HEMMAState.SessionExecution);
-			log("SS accepted by all neighbours; state transitioned to "+state);
+			log("SS accepted by all neighbours");
 		}
 	}
 	
@@ -392,26 +385,50 @@ public class HEMMAProtocol
 		case SessionExecution:
 			if(agent.completionCriteriaMet())
 			{
-				if(sender == this)
-					log("Session completion criteria met.");
+				log("Session completion criteria met.");
 				transitionState(HEMMAState.SessionComplete);
+				if(sender != this)
+				{
+					sender.message(new HEMMAMessage(this, HEMMAMessageType.FinishSession_accepted));
+					log("Forwarding FS message to neighbours.");
+					addFinishedNeighbour(sender);
+				}
+				else
+				{
+					log("Broadcasting FS message to neighbours.");
+				}
+				broadcast(new HEMMAMessage(this, HEMMAMessageType.FinishSession), sender.agent);
 			}
+			else
+			{
+				if(sender != this)
+				{
+					log("rejecting FS");
+					sender.message(new HEMMAMessage(this, HEMMAMessageType.FinishSession_reject));
+				}
+			}
+			
 			break;
 
 		case SessionComplete:
-			
+			addFinishedNeighbour(sender);
 			break;
 			
 		default:
 			break;
 		}
+	}
+
+	protected void addFinishedNeighbour(HEMMAProtocol sender) 
+	{
+		finishedNeighbours.add(sender);
 		
-		if(sender != this)
-			log("Forwarding FS message to neighbours.");
-		else
-			log("Broadcasting FS message to neighbours.");
-		
-		broadcast(new HEMMAMessage(this, HEMMAMessageType.FinishSession), sender.agent);
+		if(finishedNeighbours.containsAll(neighbours))
+		{
+			log("session finished");
+			finishedNeighbours.clear();
+			transitionState(Idle);
+		}
 	}
 	
 	/**
@@ -439,8 +456,10 @@ public class HEMMAProtocol
 	}
 	
 	static Random rand = new Random(0);
+	boolean started = false;
 	public void execute()
 	{
+		boolean FSRejected = false;
 		do
 		{
 			// State machine:
@@ -449,10 +468,14 @@ public class HEMMAProtocol
 			case Idle:
 				// For the sake of simulation, assume that in the idle state the agent's
 				// physical state has changed enough to trigger a session start request:
-				startSession(this, null);
+				if(!started)
+				{
+					started = true;
+					startSession(this, null);
+				}
 				break;
 			case SessionExecution:
-				if(agent.completionCriteriaMet())
+				if(!FSRejected && agent.completionCriteriaMet())
 					finishSession(this);
 				break;
 			default:
@@ -481,10 +504,11 @@ public class HEMMAProtocol
 					finishSession(message.source);
 					break;
 				case FinishSession_accepted:
-					
+					addFinishedNeighbour(message.source);
 					break;
 				case FinishSession_reject:
-					
+					FSRejected = true;
+					resumeSession(message.source);
 					break;
 				case IdentifyNeighbour:
 					identifyNeighbour(message.source);
@@ -507,6 +531,13 @@ public class HEMMAProtocol
 				}
 			}
 		} while(!messageQueue.isEmpty());
+	}
+
+	private void resumeSession(HEMMAProtocol source) 
+	{
+		log("FS rejected by "+source.agent.getName());
+		transitionState(HEMMAState.SessionExecution);
+		finishedNeighbours.clear();
 	}
 
 	public void init()
@@ -549,42 +580,10 @@ public class HEMMAProtocol
 
 	public Iterable<IAgent> neighbourSet()
 	{
-if(useCache)
-		return neighbourCache.values();
-else
-	return connections;
-		
-//		return new Iterable<IAgent>() {
-//			
-//			@Override
-//			public Iterator<IAgent> iterator() 
-//			{
-//				final Iterator<HEMMAProtocol> it = neighbours.iterator();
-//				return new Iterator<IAgent>() {
-//					
-//					@Override
-//					public IAgent next() 
-//					{
-//						// If not cached then request values from neighbour:
-//						HEMMAProtocol hemma = it.next();
-//						if(!neighbourCache.containsKey(hemma))
-//							throw new RuntimeException("Neighbour missing from cache: "+hemma.agent.getName());
-//						
-//						// Otherwise use cached values:
-//						IAgent agent = neighbourCache.get(hemma);
-//						if(agent == null)
-//							throw new RuntimeException();
-//						return agent;
-//					}
-//					
-//					@Override
-//					public boolean hasNext() 
-//					{
-//						return it.hasNext();
-//					}
-//				};
-//			}
-//		};
+		if(useCache)
+			return neighbourCache.values();
+		else
+			return connections;
 	}
 	
 	public void updateValues()

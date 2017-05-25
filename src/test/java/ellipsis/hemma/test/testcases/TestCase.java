@@ -152,6 +152,10 @@ public abstract class TestCase
 				agent.updateConvergence(previousState);
 			}
 			
+			// Execute messages before getting data point:
+			for (Agent agent : agents)
+				agent.getHemmaProtocol().execute();
+			
 			// Save state for logging later:
 			sol.storeDataPoint(agents);
 		}
