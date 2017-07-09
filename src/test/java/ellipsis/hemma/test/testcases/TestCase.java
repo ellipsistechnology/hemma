@@ -76,92 +76,102 @@ public abstract class TestCase
 					log.print(",");
 			}
 			
-			for (Agent agent : agents)
-			{
-				double epsilon = agent.getEpsilon();
-				
-				agent.getHemmaProtocol().execute();
-				
-				if(!agent.getHemmaProtocol().getState().equals(HEMMAProtocol.HEMMAState.SessionExecution))
-					continue;
-				
-				// Minimise (14) (TODO move this to agent):
-				
-				// Check that neighbours are known:
-				if(!agent.getHemmaProtocol().initialised())
-					continue;
-				
-				RealVector previousState = agent.state();
-				
-				/*
-				 * Stochastic gradient decent until Lagrange gradient is less than epsilon,
-				 * or, if projected, until the step length is below a minimum threshold
-				 * which implies that the lowest point on the constraint set boundary 
-				 * has been reached (in the case of the state being projected and the
-				 * gradient not being able to drop below epsilon).
-				 */
-				int maxGradDecIterations = 100;
-				for(int i = 0; i < 3; ++i) // one dimension at a time - this is much faster due to a steep, curved Lagrange function 
-				{
-					RealVector grad = grad(agent, i);
-					double stepLength = 1.0; // how far we have stepped (if too small then no point in continuing - usually an issue due to projection)
-					int j = 0;
-					while(grad.getNorm() > epsilon && stepLength > 1e-6 && j < maxGradDecIterations)
-					{
-						++j;
-
-						// Approximately find the best step size:
-						double stepSize = backtrack(sol, agents, agent, grad); // TODO replace with local backtracking
-						RealVector step = grad.mapMultiply(-stepSize);
-						
-						// Step the agents state:
-						RealVector oldState = agent.state();
-						agent.setState(oldState.add(step));
-						
-						// Project back into the constraint set:
-						agent.project();
-						
-						// Update neighbours' g(x) values:
-						RealVector newState = agent.state();
-						RealVector delta = newState.subtract(oldState);
-						agent.getHemmaProtocol().updateNeighbourG(delta.toArray());
-						
-						// Check how far we've stepped:
-						stepLength = delta.getNorm();
-						
-						// Next gradient:
-						grad = grad(agent, i);
-					}
-				}
-				
-				// Step dual variables (15) and penalty multiplier if g(x) is too big:
-				double targetG = Math.max(1e-3, epsilon);
-				if(Math.abs(agent.gPlus()) > targetG || Math.abs(agent.gMinus()) > targetG)
-				{
-					agent.stepLambda();
-					agent.stepAlpha();
-				}
-				
-				// Step epsilon:
-				agent.stepEpsilon();
-				
-				// Inform neighbours of values:
-				agent.updateValues();
-				
-				// Update average convergence estaimte:
-				agent.updateConvergence(previousState);
-			}
-			
-			// Execute messages before getting data point:
-			for (Agent agent : agents)
-				agent.getHemmaProtocol().execute();
-			
-			// Save state for logging later:
-			sol.storeDataPoint(agents);
+			executeIteration(agents, sol, k);
 		}
 		
 		log.println("Simulation complete.");
 		return sol;
+	}
+
+	protected void executeIteration(Set<Agent> agents, Solution sol, int k) 
+	{
+		for (Agent agent : agents)
+		{
+			executeIterationForAgent(agents, agent, sol, k);
+		}
+		
+		// Execute messages before getting data point:
+		for (Agent agent : agents)
+			agent.getHemmaProtocol().execute(k);
+		
+		// Save state for logging later:
+		sol.storeDataPoint(agents);
+	}
+
+	protected void executeIterationForAgent(Set<Agent> agents, Agent agent, Solution sol, int k) 
+	{
+		double epsilon = agent.getEpsilon();
+		
+		agent.getHemmaProtocol().execute(k);
+		
+		if(!agent.getHemmaProtocol().getState().equals(HEMMAProtocol.HEMMAState.SessionExecution))
+			return;
+		
+		// Minimise (14) (TODO move this to agent):
+		
+		// Check that neighbours are known:
+		if(!agent.getHemmaProtocol().initialised())
+			return;
+		
+		RealVector previousState = agent.state();
+		
+		/*
+		 * Stochastic gradient decent until Lagrange gradient is less than epsilon,
+		 * or, if projected, until the step length is below a minimum threshold
+		 * which implies that the lowest point on the constraint set boundary 
+		 * has been reached (in the case of the state being projected and the
+		 * gradient not being able to drop below epsilon).
+		 */
+		int maxGradDecIterations = 100;
+		for(int i = 0; i < 3; ++i) // one dimension at a time - this is much faster due to a steep, curved Lagrange function 
+		{
+			RealVector grad = grad(agent, i);
+			double stepLength = 1.0; // how far we have stepped (if too small then no point in continuing - usually an issue due to projection)
+			int j = 0;
+			while(grad.getNorm() > epsilon && stepLength > 1e-6 && j < maxGradDecIterations)
+			{
+				++j;
+
+				// Approximately find the best step size:
+				double stepSize = backtrack(sol, agents, agent, grad); // TODO replace with local backtracking
+				RealVector step = grad.mapMultiply(-stepSize);
+				
+				// Step the agents state:
+				RealVector oldState = agent.state();
+				agent.setState(oldState.add(step));
+				
+				// Project back into the constraint set:
+				agent.project();
+				
+				// Update neighbours' g(x) values:
+				RealVector newState = agent.state();
+				RealVector delta = newState.subtract(oldState);
+				agent.getHemmaProtocol().updateNeighbourG(delta.toArray());
+				
+				// Check how far we've stepped:
+				stepLength = delta.getNorm();
+				
+				// Next gradient:
+				grad = grad(agent, i);
+			}
+		}
+		
+		// Step dual variables (15) and penalty multiplier if g(x) is too big:
+		double targetG = Math.max(1e-3, epsilon);
+		if(Math.abs(agent.gPlus()) > targetG || Math.abs(agent.gMinus()) > targetG)
+		{
+			agent.stepLambda();
+			agent.stepAlpha();
+		}
+		
+		// Step epsilon:
+		agent.stepEpsilon();
+		
+		// Inform neighbours of values:
+		agent.updateValues();
+		
+		// Update average convergence estaimte:
+		agent.updateConvergence(previousState);
 	}
 
 	public RealVector grad(Agent agent, int i)

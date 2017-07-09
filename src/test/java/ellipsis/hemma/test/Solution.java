@@ -52,8 +52,10 @@ public class Solution
 		xs.add(x);
 		lagrangeValues.add(lagrange(agents));
 		costValues.add(cost(agents));
-		gradientValues.add(appendVectors(agents, n -> VectorHelper.abs(n.gradient().mapDivide(n.getAlpha()))));
-		gValues.add(appendVectors(agents, n -> vector(n.gPlus(), n.gMinus())));
+//		gradientValues.add(appendVectors(agents, n -> VectorHelper.abs(n.gradient()/*.mapDivide(n.getAlpha())*/)));
+		gradientValues.add(appendVectors(agents, n -> VectorHelper.abs(n.gradientNoAug()/*.mapDivide(n.getAlpha())*/)));
+		RealVector g = appendVectors(agents, n -> vector(n.gPlus(), n.gMinus()));
+		gValues.add(g);
 		epsilonValues.add(vector(agents, Agent::getEpsilon));
 		alphaValues.add(agents.iterator().next().getAlpha());
 		lambdaValues.add(appendVectors(agents, n -> vector(n.getLambdaPlus(), n.getLambdaMinus())));
@@ -124,6 +126,7 @@ public class Solution
 		{
 			out.print("g"+i+"(x),");
 		}
+		out.print("||g(x)||,");
 		out.print("alpha,");
 		for (int i = 0; i < agentCount; i++)
 		{
@@ -166,6 +169,7 @@ public class Solution
 				{
 					out.print(g.getEntry(i)+",");
 				}
+				out.print(g.getNorm()+",");
 				out.print(alphaValues.get(k)+",");
 				RealVector epsilon = epsilonValues.get(k);
 				for (int i = 0; i < agentCount; i++)

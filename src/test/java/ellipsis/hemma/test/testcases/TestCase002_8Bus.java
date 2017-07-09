@@ -6,9 +6,14 @@ import java.util.Set;
 
 import ellipsis.hemma.Agent;
 import ellipsis.hemma.test.NetworkBuilder;
+import ellipsis.hemma.test.Solution;
 
 public class TestCase002_8Bus extends TestCase
 {
+	private static final int SHUTDOWN_START_ITERATION = 100;
+	private static final int SHUTDOWN_END_ITERATION = 200;
+	private static final String SHUTDOWN_AGENT = "VC1";
+
 	public static void main(String[] args)
 	{
 		new TestCase002_8Bus().run(2000);
@@ -35,7 +40,7 @@ public class TestCase002_8Bus extends TestCase
         builder.link("VC1", "VC2", 1.0);
         builder.link("VC2", "CP1", 1.0);
         builder.link("CP1", "CP2", 1.0);
-        builder.link("CP2", "CP3", 1.0);
+        builder.link("CP1", "CP3", 1.0);
         builder.link("CP3", "CP4", 1.0);
 
         Set<Agent> agents = builder.agentSet();
@@ -61,5 +66,22 @@ public class TestCase002_8Bus extends TestCase
         setEach(agents, Agent::setLambdaMax,         1e6);
 
 		return agents;
+	}
+	
+	@Override
+	protected void executeIterationForAgent(Set<Agent> agents, Agent agent, Solution sol, int k) 
+	{
+		if(k == SHUTDOWN_START_ITERATION && agent.getName().equals(SHUTDOWN_AGENT))
+		{
+			agent.pause();
+		}
+		else if(k == SHUTDOWN_END_ITERATION && agent.getName().equals(SHUTDOWN_AGENT))
+		{
+			agent.play();
+		}
+		else
+		{
+			super.executeIterationForAgent(agents, agent, sol, k);
+		}
 	}
 }

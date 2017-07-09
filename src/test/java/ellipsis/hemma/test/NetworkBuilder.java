@@ -36,6 +36,11 @@ public class NetworkBuilder
 		return new LinkedHashSet<>(agents.values());
 	}
 	
+	public Agent getAgent(String name)
+	{
+		return agents.get(name);
+	}
+	
 	public NetworkBuilder makeCPAgent(String name, double power)
     {
         Agent cp = new ConstantPowerAgent(power); // Watts (load)

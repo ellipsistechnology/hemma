@@ -33,7 +33,6 @@ public abstract class Agent implements IAgent
 	private double previousConvergenceMeasure = 1.0;
 
 	// HEMMA protocol variables:
-//	protected AgentCommunicator communicator;
 	protected HEMMAProtocol hemmaProtocol;
 	
 	
@@ -48,6 +47,16 @@ public abstract class Agent implements IAgent
 	public void switchOn()
 	{
 		hemmaProtocol.init();
+	}
+	
+	public void pause()
+	{
+		hemmaProtocol.disable();
+	}
+	
+	public void play()
+	{
+		hemmaProtocol.enable();
 	}
 	
 	
@@ -85,6 +94,35 @@ public abstract class Agent implements IAgent
 	 * @return \nabla_{wrt} c_i(x)
 	 */
 	public abstract RealVector costGradient(IAgent wrt);
+	
+	public RealVector gradientNoAug() 
+	{
+		// Cost gradients:
+		// \nabla_i \sum c_i(x)
+		RealVector costGrad = costGradient(this);
+		RealVector neighbourCostGradients = sumV(n -> neighbourCostGradient(n), hemmaProtocol.neighbourSet(), 3); // FIXME this will always return zero now since the cost only uses local variables
+		
+		// Penalty gradients for positive power flow:
+		// \nabla_i \sum \nabla_i g^+_i(x) (\lambda^+ + \alpha g^+_i(x))
+		RealVector gPlusGrad = gPlusGradient(this).mapMultiply(lambdaPlus);
+		RealVector neighbourGPlusGrad = sumV(n -> neighbourGPlusGradient(n).mapMultiply(n.getLambdaPlus()), hemmaProtocol.neighbourSet(), 3);
+
+		// Penalty gradients for negative power flow:
+		// \nabla_i \sum \nabla_i g^-_i(x) (\lambda^+ + \alpha g^-_i(x))
+		RealVector gMinusGrad = gMinusGradient(this).mapMultiply(lambdaMinus);
+		RealVector neighbourGMinusGrad = sumV(n -> neighbourGMinusGradient(n).mapMultiply(n.getLambdaMinus()), hemmaProtocol.neighbourSet(), 3);
+		
+		RealVector grad = 
+				costGrad.add(neighbourCostGradients).add(
+				gPlusGrad).add(neighbourGPlusGrad).add(
+				gMinusGrad).add(neighbourGMinusGrad);
+		
+		// If grounded then set v- = 0:
+		if(grounded)
+			grad.setEntry(1, 0.0); // [v, v-, p]
+
+		return grad;
+	}
 	
 	/**
 	 * Lagrange gradient with respect to this agent's state: [v, v-, p].
@@ -282,7 +320,7 @@ public abstract class Agent implements IAgent
 
 	public void updateConvergence(RealVector previousState) 
 	{
-		double xi = 0.05;
+		double xi = 0.15;
 		
 		// Convergence measure:
 		double h_i = new ArrayRealVector(new double[]{gPlus(), gMinus()}).getNorm() + state().subtract(previousState).getNorm();

@@ -146,6 +146,7 @@ public class HEMMAProtocol
 
 	public static enum HEMMAState
 	{
+		Off,
 		Idle,
 		SessionComplete,
 		SessionInitialisation,
@@ -208,6 +209,8 @@ public class HEMMAProtocol
 		}
 	}
 	
+
+	private int k; // iteration
 	private HEMMAState state = Idle;
 	private Queue<HEMMAMessage> messageQueue = new LinkedList<>();
 	private Set<IAgent> connections = new HashSet<>(); // 'Physical connections'.
@@ -215,6 +218,7 @@ public class HEMMAProtocol
 	private Map<HEMMAProtocol, IAgent> neighbourCache = new HashMap<>(); // Cached values from variable updates.
 	private Agent agent;
 	private Set<HEMMAProtocol> finishedNeighbours = new HashSet<>();
+	private HEMMAState preDisableState; // state before disabling ready to start up again
 	
 	public HEMMAProtocol(Agent agent)
 	{
@@ -282,8 +286,7 @@ public class HEMMAProtocol
 	/**
 	 * Request that a new optimisation session begin. 
 	 * This can only be sent if the agent is not currently 
-	 * in an optimisation session. Each new request will 
-	 * be associated with a randomly generated unique identifier. 
+	 * in an optimisation session.  
 	 * Optimisation will begin once all neighbours have 
 	 * accepted the SS request.
 	 * 
@@ -306,7 +309,7 @@ public class HEMMAProtocol
 				updateCache(ssRequest);
 				checkSessionAccepted();
 				
-				// Send an accept response to the sender of the RS request (if applicable):
+				// Send an accept response to the sender of the SS request (if applicable):
 				log("sending SS accept message to "+sender.agent.getName());
 				sender.message(new HEMMAMessage(this, HEMMAMessageType.StartSession_accepted, parameters(sender.agent)));
 				
@@ -457,8 +460,13 @@ public class HEMMAProtocol
 	
 	static Random rand = new Random(0);
 	boolean started = false;
-	public void execute()
+
+	public void execute(int k)
 	{
+		if(state == HEMMAState.Off)
+			return;
+		
+		this.k = k;
 		boolean FSRejected = false;
 		do
 		{
@@ -554,6 +562,17 @@ public class HEMMAProtocol
 			log("Init called in invalid state: "+state);
 		}
 	}
+	
+	public void disable() 
+	{
+		preDisableState = state;
+		transitionState(HEMMAState.Off);
+	}
+	
+	public void enable() 
+	{
+		transitionState(preDisableState);
+	}
 
 	protected void broadcast(HEMMAMessage message)
 	{
@@ -628,6 +647,8 @@ public class HEMMAProtocol
 	
 	void log(String message)
 	{
+		log.print(k);
+		log.print(",");
 		log.print(agent.getName());
 		log.print(",");
 		log.println(message);
