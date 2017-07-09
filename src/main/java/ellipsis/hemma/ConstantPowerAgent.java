@@ -19,6 +19,11 @@ public class ConstantPowerAgent extends Agent
 	{
 		this.constantPower = power;
 	}
+	
+	public void setConstantPower(double power)
+	{
+		constantPower = power;
+	}
 
 	@Override
 	public double gPlus()
